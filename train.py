@@ -13,7 +13,11 @@ from src.process import local_train, local_test
 import torch.multiprocessing as _mp
 import shutil
 
+def str2bool(value):
 
+    if value.lower()=='true':
+        return True
+    return False
 def get_args():
     parser = argparse.ArgumentParser(
         """Implementation of model described in the paper: Asynchronous Methods for Deep Reinforcement Learning for Super Mario Bros""")
@@ -33,7 +37,7 @@ def get_args():
     parser.add_argument("--saved_path", type=str, default="trained_models")
     parser.add_argument("--load_from_previous_stage", type=bool, default=False,
                         help="Load weight from previous trained stage")
-    parser.add_argument("--use_gpu", type=bool, default=True)
+    parser.add_argument("--use_gpu", type=str2bool, default=False)
     args = parser.parse_args()
     return args
 

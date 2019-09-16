@@ -5,7 +5,7 @@
 import gym_super_mario_bros
 from gym.spaces import Box
 from gym import Wrapper
-from nes_py.wrappers import BinarySpaceToDiscreteSpaceEnv
+from nes_py.wrappers import JoypadSpace
 from gym_super_mario_bros.actions import SIMPLE_MOVEMENT, COMPLEX_MOVEMENT, RIGHT_ONLY
 import cv2
 import numpy as np
@@ -47,10 +47,12 @@ class CustomReward(Wrapper):
 
     def step(self, action):
         state, reward, done, info = self.env.step(action)
+        
         if self.monitor:
             self.monitor.record(state)
         state = process_frame(state)
         reward += (info["score"] - self.curr_score) / 40.
+#        print(info["score"],reward,(info["score"] - self.curr_score) / 40.)
         self.curr_score = info["score"]
         if done:
             if info["flag_get"]:
@@ -102,7 +104,7 @@ def create_train_env(world, stage, action_type, output_path=None):
         actions = SIMPLE_MOVEMENT
     else:
         actions = COMPLEX_MOVEMENT
-    env = BinarySpaceToDiscreteSpaceEnv(env, actions)
+    env = JoypadSpace(env, actions)
     env = CustomReward(env, monitor)
     env = CustomSkipFrame(env)
     return env, env.observation_space.shape[0], len(actions)

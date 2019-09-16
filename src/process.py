@@ -10,7 +10,8 @@ from torch.distributions import Categorical
 from collections import deque
 from tensorboardX import SummaryWriter
 import timeit
-
+import time
+ 
 
 def local_train(index, opt, global_model, optimizer, save=False):
     torch.manual_seed(123 + index)
@@ -33,7 +34,7 @@ def local_train(index, opt, global_model, optimizer, save=False):
             if curr_episode % opt.save_interval == 0 and curr_episode > 0:
                 torch.save(global_model.state_dict(),
                            "{}/a3c_super_mario_bros_{}_{}".format(opt.saved_path, opt.world, opt.stage))
-            print("Process {}. Episode {}".format(index, curr_episode))
+            print("Process {}. Episode {}".format(index, curr_episode),done)
         curr_episode += 1
         local_model.load_state_dict(global_model.state_dict())
         if done:
@@ -52,6 +53,7 @@ def local_train(index, opt, global_model, optimizer, save=False):
         entropies = []
 
         for _ in range(opt.num_local_steps):
+
             curr_step += 1
             logits, value, h_0, c_0 = local_model(state, h_0, c_0)
             policy = F.softmax(logits, dim=1)
@@ -62,11 +64,16 @@ def local_train(index, opt, global_model, optimizer, save=False):
             action = m.sample().item()
 
             state, reward, done, _ = env.step(action)
+#            if save:
+#                env.render()
+#                print(reward)
+#                time.sleep(1)  
             state = torch.from_numpy(state)
             if opt.use_gpu:
                 state = state.cuda()
             if curr_step > opt.num_global_steps:
                 done = True
+                print('max glabal step achieve')
 
             if done:
                 curr_step = 0
@@ -150,7 +157,7 @@ def local_test(index, opt, global_model):
         policy = F.softmax(logits, dim=1)
         action = torch.argmax(policy).item()
         state, reward, done, _ = env.step(action)
-        env.render()
+#        env.render()
         actions.append(action)
         if curr_step > opt.num_global_steps or actions.count(actions[0]) == actions.maxlen:
             done = True
