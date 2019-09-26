@@ -18,6 +18,7 @@ from torch.distributions import Categorical
 from collections import deque
 from tensorboardX import SummaryWriter
 import timeit
+import numpy as np
 
 
 def local_train(index, opt, global_model, optimizer, save=False):
@@ -34,6 +35,7 @@ def local_train(index, opt, global_model, optimizer, save=False):
     done = True
     curr_step = 0
     curr_episode = 0
+    loss_matrix = np.zeros((50000))
     while True:
         if save:
             if curr_episode % opt.save_interval == 0 and curr_episode > 0:
@@ -143,6 +145,13 @@ def local_train(index, opt, global_model, optimizer, save=False):
 #        print(actor_loss)
         total_loss = -actor_loss + critic_loss - opt.beta * entropy_loss
         writer.add_scalar("Train_{}/Loss".format(index), total_loss, curr_episode)
+
+
+        loss_matrix[curr_episode]=total_loss.detach().cpu().numpy()
+        if curr_episode%1000==0:
+            np.save("{}/loss{}".format(opt.saved_path,index), loss_matrix)
+
+
         optimizer.zero_grad()
         total_loss.backward(retain_graph=True)
 
@@ -169,10 +178,18 @@ def local_test(index, opt, global_model):
     done = True
     curr_step = 0
     actions = deque(maxlen=opt.max_actions)
+    Acc_Reward=np.zeros((10000))
+    i=0
     while True:
         curr_step += 1
         if done:
             local_model.load_state_dict(global_model.state_dict())
+            print(i)
+            if i>5000:
+                
+                local_model.load_state_dict(torch.load("{}/a3c_seq_super_mario_bros_{}_{}".format(opt.saved_path, opt.world, opt.stage), map_location=lambda storage, loc: storage))
+                #torch.save(local_model.state_dict(),
+                 #          "{}/a3c_seq_super_mario_bros_{}_{}_{}".format(opt.saved_path, opt.world, opt.stage,i))
         with torch.no_grad():
             if done:
                 h_0 = torch.zeros((1, 512), dtype=torch.float)
@@ -189,6 +206,7 @@ def local_test(index, opt, global_model):
         policy = F.softmax(logits, dim=1)
         action = torch.argmax(policy).item()
         state, reward, done, _ = env.step(action)
+        Acc_Reward[i]+=reward
 #        env.render()
         actions.append(action)
         if curr_step > opt.num_global_steps or actions.count(actions[0]) == actions.maxlen:
@@ -197,4 +215,8 @@ def local_test(index, opt, global_model):
             curr_step = 0
             actions.clear()
             state = env.reset()
+            if i%1000==0:
+                np.save("{}/reward".format(opt.saved_path),Acc_Reward)
+            print(Acc_Reward[i])
+            i+=1
         state = torch.from_numpy(state)
