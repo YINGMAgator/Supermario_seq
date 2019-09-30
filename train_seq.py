@@ -40,13 +40,14 @@ def get_args():
     parser.add_argument("--num_global_steps", type=int, default=5e6)
     parser.add_argument("--num_processes", type=int, default=6)
     parser.add_argument("--num_sequence", type=int, default=0)
+    parser.add_argument("--final_step", type=int, default=5000)
     parser.add_argument("--save_interval", type=int, default=500, help="Number of steps between savings")
     parser.add_argument("--max_actions", type=int, default=200, help="Maximum repetition steps in test phase")
     parser.add_argument("--log_path", type=str, default="tensorboard/a3c_super_mario_bros")
     parser.add_argument("--saved_path", type=str, default="trained_models")
     parser.add_argument("--load_from_previous_stage", type=bool, default=False,
                         help="Load weight from previous trained stage")
-    parser.add_argument("--use_gpu", type=str2bool, default=True)
+    parser.add_argument("--use_gpu", type=str2bool, default=False)
     args = parser.parse_args()
     return args
 
@@ -59,7 +60,7 @@ def train(opt):
     if not os.path.isdir(opt.saved_path):
         os.makedirs(opt.saved_path)
     mp = _mp.get_context("spawn")
-    env, num_states, num_actions = create_train_env(opt.world, opt.stage, opt.action_type)
+    env, num_states, num_actions = create_train_env(opt.world, opt.stage,opt.action_type, opt.final_step)
     print(opt.num_sequence)
     global_model = ActorCritic_seq(num_states, num_actions,opt.num_sequence)
     if opt.use_gpu:

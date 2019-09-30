@@ -18,24 +18,24 @@ from torch.distributions import Categorical
 from collections import deque
 from tensorboardX import SummaryWriter
 import timeit
-import numpy as np
-
+import copy
 
 def local_train(index, opt, global_model, optimizer, save=False):
     torch.manual_seed(123 + index)
     if save:
         start_time = timeit.default_timer()
     writer = SummaryWriter(opt.log_path)
-    env, num_states, num_actions = create_train_env(opt.world, opt.stage, opt.action_type)
+    env, num_states, num_actions = create_train_env(opt.world, opt.stage, opt.action_type,opt.final_step)
     local_model = ActorCritic_seq(num_states, num_actions,opt.num_sequence)
     if opt.use_gpu:
         local_model.cuda()
     local_model.train()
-
+    state = torch.from_numpy(env.reset())
+    if opt.use_gpu:
+        state = state.cuda()
     done = True
     curr_step = 0
     curr_episode = 0
-    loss_matrix = np.zeros((50000))
     while True:
         if save:
             if curr_episode % opt.save_interval == 0 and curr_episode > 0:
@@ -43,21 +43,25 @@ def local_train(index, opt, global_model, optimizer, save=False):
                            "{}/a3c_seq_super_mario_bros_{}_{}".format(opt.saved_path, opt.world, opt.stage))
             print("Process {}. Episode {}".format(index, curr_episode),done)
         curr_episode += 1
+
         local_model.load_state_dict(global_model.state_dict())
+        g_0_cnt = 0 
         if done:
+            g_0_ini = torch.ones((1))
             h_0 = torch.zeros((1, 512), dtype=torch.float)
             c_0 = torch.zeros((1, 512), dtype=torch.float)
-            state = torch.from_numpy(env.reset())            
+            g_0 = torch.zeros((1, opt.num_sequence), dtype=torch.float)
+                       
         else:
             h_0 = h_0.detach()
             c_0 = c_0.detach()
-
-        g_0_ini = torch.ones((1))
+            g_0 = g_0.detach()
+        
         if opt.use_gpu:
             h_0 = h_0.cuda()
             c_0 = c_0.cuda()
             g_0_ini = g_0_ini.cuda()
-            state = state.cuda()
+            g_0 = g_0.cuda()
 
         log_policies = []
         log_gates = []
@@ -65,34 +69,44 @@ def local_train(index, opt, global_model, optimizer, save=False):
         rewards = []
         reward_internals = []
         entropies = []
-        for _ in range(opt.num_local_steps):
-
+        for aaaaa in range(opt.num_local_steps):
             curr_step += 1
-            
+            g_pre = g_0
+            g_pre_cnt = g_0_cnt
 
-            
-            logits, value, h_0, c_0, g_0,g_0_cnt = local_model(state, h_0, c_0,g_0_ini)
-            g_0_ini = torch.zeros((1))
-            if opt.use_gpu:
-                g_0_ini = g_0_ini.cuda()
+            logits, value, h_0, c_0, g_0,g_0_cnt,gate_flag1, gate_flag2= local_model(state, h_0, c_0,g_0_ini)
 
-            
             policy = F.softmax(logits, dim=1)
             log_policy = F.log_softmax(logits, dim=1)
             entropy = -(policy * log_policy).sum(1, keepdim=True)
 
             m = Categorical(policy)
             action = m.sample().item()
-            state, reward, done, _ = env.step(action)
+            state, reward, done, info = env.step(action)
             reward_internal = reward
-            if g_0_cnt==0:
+            
+            if g_0_ini==1:
+                if save:
+                    print(aaaaa,info['x_pos'],g_0.data)   
                 log_gate = torch.zeros((), dtype=torch.float)
                 if opt.use_gpu:
                     log_gate = log_gate.cuda()
+            elif gate_flag1:
+                if save:
+                    print(aaaaa,info['x_pos'],g_0.data)   
+#                log_gate = log_gate
+                log_gate = torch.zeros((), dtype=torch.float)
+            elif gate_flag2:
+                if save:
+                    print(aaaaa,info['x_pos'],g_0.data)                     
+#                log_gate = log_gate + torch.log(1-g_pre[0,g_pre_cnt]) 
+                log_gate = torch.log(1-g_pre[0,g_pre_cnt]) 
             else:
                 log_gate = log_gate+torch.log(g_0[0,g_0_cnt-1])
-                reward_internal = reward
-
+                reward_internal = reward+0.01
+            g_0_ini = torch.zeros((1))
+            if opt.use_gpu:
+                g_0_ini = g_0_ini.cuda()
 #            if save:
 #                env.render()
 #                print(reward)
@@ -124,7 +138,7 @@ def local_train(index, opt, global_model, optimizer, save=False):
         if opt.use_gpu:
             R = R.cuda()
         if not done:
-            _, R, _, _ ,_,_= local_model(state, h_0, c_0,g_0_ini)
+            _, R, _, _ ,_,_,gate_flag1, gate_flag2= local_model(state, h_0, c_0,g_0_ini)
 
         gae = torch.zeros((1, 1), dtype=torch.float)
         if opt.use_gpu:
@@ -132,26 +146,45 @@ def local_train(index, opt, global_model, optimizer, save=False):
         actor_loss = 0
         critic_loss = 0
         entropy_loss = 0
-        next_value = R
-
+        
+#        next_value = R
+#        for value, log_policy, log_gate, reward, reward_internal, entropy in list(zip(values, log_policies, log_gates, rewards,reward_internals, entropies))[::-1]:
+#            gae = gae * opt.gamma * opt.tau
+#            gae = gae + reward_internal + opt.gamma * next_value.detach() - value.detach()
+#            next_value = value
+#            actor_loss = actor_loss + (log_policy+log_gate) * gae
+#            R = R * opt.gamma + reward
+#            critic_loss = critic_loss + (R - value) ** 2 / 2
+#            entropy_loss = entropy_loss + entropy
+        
+# estimate internal reward directly      
+        if not (gate_flag1 or gate_flag2):
+            R=R+0.01
+        next_value = R  
         for value, log_policy, log_gate, reward, reward_internal, entropy in list(zip(values, log_policies, log_gates, rewards,reward_internals, entropies))[::-1]:
             gae = gae * opt.gamma * opt.tau
             gae = gae + reward_internal + opt.gamma * next_value.detach() - value.detach()
             next_value = value
-            actor_loss = actor_loss + (log_policy) * gae
-            R = R * opt.gamma + reward
+            actor_loss = actor_loss + (log_policy+log_gate) * gae
+            R = R * opt.gamma + reward_internal
             critic_loss = critic_loss + (R - value) ** 2 / 2
             entropy_loss = entropy_loss + entropy
-#        print(actor_loss)
+            
+# estimate external reward      
+
+#        next_value = R  
+#        for value, log_policy, log_gate, reward, reward_internal, entropy in list(zip(values, log_policies, log_gates, rewards,reward_internals, entropies))[::-1]:
+#            gae = gae * opt.gamma * opt.tau
+#            gae = gae + reward_internal-0.01* + opt.gamma * next_value.detach() - value.detach()
+#            next_value = value
+#            actor_loss = actor_loss + (log_policy+log_gate) * gae
+#            R = R * opt.gamma + reward
+#            critic_loss = critic_loss + (R - value) ** 2 / 2
+#            entropy_loss = entropy_loss + entropy
+            
+            
         total_loss = -actor_loss + critic_loss - opt.beta * entropy_loss
         writer.add_scalar("Train_{}/Loss".format(index), total_loss, curr_episode)
-
-
-        loss_matrix[curr_episode]=total_loss.detach().cpu().numpy()
-        if curr_episode%1000==0:
-            np.save("{}/loss{}".format(opt.saved_path,index), loss_matrix)
-
-
         optimizer.zero_grad()
         total_loss.backward(retain_graph=True)
 
@@ -172,24 +205,16 @@ def local_train(index, opt, global_model, optimizer, save=False):
 
 def local_test(index, opt, global_model):
     torch.manual_seed(123 + index)
-    env, num_states, num_actions = create_train_env(opt.world, opt.stage, opt.action_type)
+    env, num_states, num_actions = create_train_env(opt.world, opt.stage, opt.action_type,opt.final_step)
     local_model = ActorCritic_seq(num_states, num_actions,opt.num_sequence)
     local_model.eval()
     done = True
     curr_step = 0
     actions = deque(maxlen=opt.max_actions)
-    Acc_Reward=np.zeros((10000))
-    i=0
     while True:
         curr_step += 1
         if done:
             local_model.load_state_dict(global_model.state_dict())
-            print(i)
-            if i>5000:
-                
-                local_model.load_state_dict(torch.load("{}/a3c_seq_super_mario_bros_{}_{}".format(opt.saved_path, opt.world, opt.stage), map_location=lambda storage, loc: storage))
-                #torch.save(local_model.state_dict(),
-                 #          "{}/a3c_seq_super_mario_bros_{}_{}_{}".format(opt.saved_path, opt.world, opt.stage,i))
         with torch.no_grad():
             if done:
                 h_0 = torch.zeros((1, 512), dtype=torch.float)
@@ -200,13 +225,12 @@ def local_test(index, opt, global_model):
                 h_0 = h_0.detach()
                 c_0 = c_0.detach()
 
-        logits, value, h_0, c_0,g_0,g_0_cnt = local_model(state, h_0, c_0,g_0_ini)
+        logits, value, h_0, c_0,g_0,g_0_cnt,gate_flag,_ = local_model(state, h_0, c_0,g_0_ini)
         #print(g_0,g_0_cnt)
         g_0_ini = torch.zeros((1))
         policy = F.softmax(logits, dim=1)
         action = torch.argmax(policy).item()
         state, reward, done, _ = env.step(action)
-        Acc_Reward[i]+=reward
 #        env.render()
         actions.append(action)
         if curr_step > opt.num_global_steps or actions.count(actions[0]) == actions.maxlen:
@@ -215,8 +239,4 @@ def local_test(index, opt, global_model):
             curr_step = 0
             actions.clear()
             state = env.reset()
-            if i%1000==0:
-                np.save("{}/reward".format(opt.saved_path),Acc_Reward)
-            print(Acc_Reward[i])
-            i+=1
         state = torch.from_numpy(state)

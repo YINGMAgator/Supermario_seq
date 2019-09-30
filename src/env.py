@@ -36,10 +36,11 @@ def process_frame(frame):
 
 
 class CustomReward(Wrapper):
-    def __init__(self, env=None, monitor=None):
+    def __init__(self, env=None, monitor=None,final_step=5000):
         super(CustomReward, self).__init__(env)
         self.observation_space = Box(low=0, high=255, shape=(1, 84, 84))
         self.curr_score = 0
+        self.final_step=final_step
         if monitor:
             self.monitor = monitor
         else:
@@ -59,6 +60,9 @@ class CustomReward(Wrapper):
                 reward += 50
             else:
                 reward -= 50
+        if info["x_pos"]>self.final_step:
+            done=True
+            reward += 50
         return state, reward / 10., done, info
 
     def reset(self):
@@ -92,7 +96,7 @@ class CustomSkipFrame(Wrapper):
         return states.astype(np.float32)
 
 
-def create_train_env(world, stage, action_type, output_path=None):
+def create_train_env(world, stage, action_type, final_step,output_path=None):
     env = gym_super_mario_bros.make("SuperMarioBros-{}-{}-v0".format(world, stage))
     if output_path:
         monitor = Monitor(256, 240, output_path)
@@ -105,6 +109,6 @@ def create_train_env(world, stage, action_type, output_path=None):
     else:
         actions = COMPLEX_MOVEMENT
     env = JoypadSpace(env, actions)
-    env = CustomReward(env, monitor)
+    env = CustomReward(env, monitor,final_step)
     env = CustomSkipFrame(env)
     return env, env.observation_space.shape[0], len(actions)

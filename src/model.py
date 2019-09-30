@@ -57,8 +57,9 @@ class ActorCritic_seq(nn.Module):
         self.conv4_gate = nn.Conv2d(32, 32, 3, stride=2, padding=1)
         self.gate_linear = nn.Linear(32 * 6 * 6, self.num_sequence)
         self.counter = 0
-        self.seq_ini_flag=False
-        self.bnl = Bernoulli (0.5)
+        self.seq_ini_flag1=False
+        self.seq_ini_flag2=False
+#        self.bnl = Bernoulli (0.5)
         self.g = torch.zeros((1, self.num_sequence), dtype=torch.float)
         
         self._initialize_weights()
@@ -74,11 +75,29 @@ class ActorCritic_seq(nn.Module):
                 nn.init.constant_(module.bias_hh, 0)
 
     def forward(self, x, hx, cx,g_ini):
-        if self.counter==self.num_sequence or g_ini==1:
-            self.seq_ini_flag = True
-                     
+#        if self.counter==self.num_sequence or g_ini==1:
+#            self.seq_ini_flag = True
+            
+        if g_ini==1 or self.counter == self.num_sequence:
+            self.seq_ini_flag1 = True
+        else:
+            self.seq_ini_flag1 = False
+            if self.counter==5:
+                print(self.counter,self.num_sequence,self.counter == self.num_sequence)
 
-        if self.seq_ini_flag:
+#            print(self.g)
+#            print(self.g.data,self.g.data[0][0],self.g.data[0][1])
+            bnl = Bernoulli (self.g.data[0][self.counter])
+            gate_sample=bnl.sample()
+#            print(gate_sample)
+            if gate_sample==1:
+#                print("yes")
+                self.seq_ini_flag2 = False
+                self.counter+=1
+            else:
+                self.seq_ini_flag2 = True
+                
+        if self.seq_ini_flag1 or self.seq_ini_flag2:
             
             self.counter = 0
             g = F.relu(self.conv1(x))
@@ -92,12 +111,13 @@ class ActorCritic_seq(nn.Module):
             x = F.relu(self.conv3(x))
             x = F.relu(self.conv4(x))  
             self.x_pre = x
-            self.seq_ini_flag = False
+
+            
          #   ggg=self.bnl.sample()
           #  if ggg==1 and g_ini!=1:
            #     self.counter +=1
-        else:
-            self.counter += 1
+#        else:
+#            self.counter += 1
         hx, cx = self.lstm(self.x_pre.view(self.x_pre.size(0), -1), (hx, cx))   
          
-        return self.actor_linear(hx), self.critic_linear(hx), hx, cx, self.g,self.counter
+        return self.actor_linear(hx), self.critic_linear(hx), hx, cx, self.g,self.counter,self.seq_ini_flag1,self.seq_ini_flag2
