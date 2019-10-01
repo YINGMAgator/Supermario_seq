@@ -103,6 +103,7 @@ def local_train(index, opt, global_model, optimizer, save=False):
                 log_gate = torch.log(1-g_pre[0,g_pre_cnt]) 
             else:
                 log_gate = log_gate+torch.log(g_0[0,g_0_cnt-1])
+#                log_gate = torch.log(g_0[0,g_0_cnt-1])
                 reward_internal = reward+0.01
             g_0_ini = torch.zeros((1))
             if opt.use_gpu:
@@ -235,6 +236,7 @@ def local_test(index, opt, global_model):
         actions.append(action)
         if curr_step > opt.num_global_steps or actions.count(actions[0]) == actions.maxlen:
             done = True
+            print('reset')
         if done:
             curr_step = 0
             actions.clear()
