@@ -18,7 +18,6 @@ from torch.distributions import Categorical
 from collections import deque
 from tensorboardX import SummaryWriter
 import timeit
-import copy
 
 def local_train(index, opt, global_model, optimizer, save=False):
     torch.manual_seed(123 + index)
@@ -86,25 +85,23 @@ def local_train(index, opt, global_model, optimizer, save=False):
             reward_internal = reward
             
             if g_0_ini==1:
-                if save:
-                    print(aaaaa,info['x_pos'],g_0.data)   
+
                 log_gate = torch.zeros((), dtype=torch.float)
                 if opt.use_gpu:
                     log_gate = log_gate.cuda()
             elif gate_flag1:
-                if save:
-                    print(aaaaa,info['x_pos'],g_0.data)   
+
 #                log_gate = log_gate
                 log_gate = torch.zeros((), dtype=torch.float)
             elif gate_flag2:
-                if save:
-                    print(aaaaa,info['x_pos'],g_0.data)                     
+                  
 #                log_gate = log_gate + torch.log(1-g_pre[0,g_pre_cnt]) 
                 log_gate = torch.log(1-g_pre[0,g_pre_cnt]) 
             else:
-                log_gate = log_gate+torch.log(g_0[0,g_0_cnt-1])
-#                log_gate = torch.log(g_0[0,g_0_cnt-1])
-                reward_internal = reward+0.01
+#                log_gate = log_gate+torch.log(g_0[0,g_0_cnt-1])
+                log_gate = torch.log(g_0[0,g_0_cnt-1])
+                if reward>0:
+                    reward_internal = reward+0.01
             g_0_ini = torch.zeros((1))
             if opt.use_gpu:
                 g_0_ini = g_0_ini.cuda()
@@ -120,6 +117,7 @@ def local_train(index, opt, global_model, optimizer, save=False):
                 print('max glabal step achieve')
 
             if done:
+                print(info['x_pos'])   
                 curr_step = 0
                 state = torch.from_numpy(env.reset())
                 if opt.use_gpu:
@@ -231,13 +229,14 @@ def local_test(index, opt, global_model):
         g_0_ini = torch.zeros((1))
         policy = F.softmax(logits, dim=1)
         action = torch.argmax(policy).item()
-        state, reward, done, _ = env.step(action)
+        state, reward, done, info = env.step(action)
 #        env.render()
         actions.append(action)
         if curr_step > opt.num_global_steps or actions.count(actions[0]) == actions.maxlen:
             done = True
-            print('reset')
+
         if done:
+#            print('test',info['x_pos'])
             curr_step = 0
             actions.clear()
             state = env.reset()
