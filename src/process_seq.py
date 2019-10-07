@@ -18,6 +18,7 @@ from torch.distributions import Categorical
 from collections import deque
 from tensorboardX import SummaryWriter
 import timeit
+import numpy as np
 
 def local_train(index, opt, global_model, optimizer, save=False):
     torch.manual_seed(123 + index)
@@ -35,6 +36,11 @@ def local_train(index, opt, global_model, optimizer, save=False):
     done = True
     curr_step = 0
     curr_episode = 0
+    
+    loss_matrix = np.zeros((100000))
+    Cum_reward = []
+    X = []
+    Episode = []    
     while True:
         if save:
             if curr_episode % opt.save_interval == 0 and curr_episode > 0:
@@ -50,7 +56,7 @@ def local_train(index, opt, global_model, optimizer, save=False):
             h_0 = torch.zeros((1, 512), dtype=torch.float)
             c_0 = torch.zeros((1, 512), dtype=torch.float)
             g_0 = torch.zeros((1, opt.num_sequence), dtype=torch.float)
-                       
+            cum_r=0           
         else:
             h_0 = h_0.detach()
             c_0 = c_0.detach()
@@ -68,6 +74,7 @@ def local_train(index, opt, global_model, optimizer, save=False):
         rewards = []
         reward_internals = []
         entropies = []
+
         for aaaaa in range(opt.num_local_steps):
             curr_step += 1
             g_pre = g_0
@@ -129,8 +136,12 @@ def local_train(index, opt, global_model, optimizer, save=False):
             rewards.append(reward)
             reward_internals.append(reward_internal)
             entropies.append(entropy)
-
+            cum_r+=reward
             if done:
+                Episode.append(curr_episode)
+                X.append(info['x_pos'])
+                Cum_reward.append(cum_r)
+                
                 break
 #        print(log_policies,log_gates)
         R = torch.zeros((1, 1), dtype=torch.float)
@@ -158,7 +169,8 @@ def local_train(index, opt, global_model, optimizer, save=False):
         
 # estimate internal reward directly      
         if not (gate_flag1 or gate_flag2):
-            R=R+0.01
+            if R >0:    
+                R=R+0.01
         next_value = R  
         for value, log_policy, log_gate, reward, reward_internal, entropy in list(zip(values, log_policies, log_gates, rewards,reward_internals, entropies))[::-1]:
             gae = gae * opt.gamma * opt.tau
@@ -186,6 +198,15 @@ def local_train(index, opt, global_model, optimizer, save=False):
         writer.add_scalar("Train_{}/Loss".format(index), total_loss, curr_episode)
         optimizer.zero_grad()
         total_loss.backward(retain_graph=True)
+        loss_matrix[curr_episode]=total_loss.detach().cpu().numpy()
+        
+        
+        if curr_episode%1000==0:
+#            print('aaaaaaaaaaa',X,Cum_reward)
+            np.save("{}/loss{}".format(opt.saved_path,index), loss_matrix)
+            np.save("{}/Cum_reward{}".format(opt.saved_path,index), Cum_reward)
+            np.save("{}/X{}".format(opt.saved_path,index), X)
+            np.save("{}/Episode{}".format(opt.saved_path,index), Episode)
 
         for local_param, global_param in zip(local_model.parameters(), global_model.parameters()):
             if global_param.grad is not None:
@@ -210,6 +231,9 @@ def local_test(index, opt, global_model):
     done = True
     curr_step = 0
     actions = deque(maxlen=opt.max_actions)
+    Cum_reward = []
+    X = []
+    i=0
     while True:
         curr_step += 1
         if done:
@@ -220,6 +244,7 @@ def local_test(index, opt, global_model):
                 c_0 = torch.zeros((1, 512), dtype=torch.float)
                 g_0_ini = torch.ones((1))
                 state = torch.from_numpy(env.reset())
+                cum_r=0
             else:
                 h_0 = h_0.detach()
                 c_0 = c_0.detach()
@@ -234,10 +259,21 @@ def local_test(index, opt, global_model):
         actions.append(action)
         if curr_step > opt.num_global_steps or actions.count(actions[0]) == actions.maxlen:
             done = True
-
+        cum_r = cum_r+reward
         if done:
-#            print('test',info['x_pos'])
+            print(i,'test',info['x_pos'])
+            i=i+1
             curr_step = 0
             actions.clear()
             state = env.reset()
+            
+            X.append(info['x_pos'])
+            Cum_reward.append(cum_r)
+                
+                
         state = torch.from_numpy(state)
+        
+        if i%100==0:
+
+            np.save("{}/Cum_reward_test".format(opt.saved_path), Cum_reward)
+            np.save("{}/X_test".format(opt.saved_path), X)
