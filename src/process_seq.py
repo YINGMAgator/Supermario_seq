@@ -19,7 +19,7 @@ from collections import deque
 from tensorboardX import SummaryWriter
 import timeit
 import numpy as np
-
+import random
 def local_train(index, opt, global_model, optimizer, save=False):
     torch.manual_seed(123 + index)
     if save:
@@ -76,8 +76,8 @@ def local_train(index, opt, global_model, optimizer, save=False):
         rewards = []
         reward_internals = []
         entropies = []
-
-        for aaaaa in range(opt.num_local_steps):
+        epoch_length=random.randint(opt.num_local_steps-10,opt.num_local_steps+10)
+        for aaaaa in range(epoch_length):
             curr_step += 1
             g_pre = g_0
             g_pre_cnt = g_0_cnt
