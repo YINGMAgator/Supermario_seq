@@ -36,7 +36,7 @@ def local_train(index, opt, global_model, optimizer, save=False):
     done = True
     curr_step = 0
     curr_episode = 0
-    
+    debug_test_i=0 
     loss_matrix = np.zeros((100000))
     Cum_reward = []
     X = []
@@ -46,16 +46,18 @@ def local_train(index, opt, global_model, optimizer, save=False):
             if curr_episode % opt.save_interval == 0 and curr_episode > 0:
                 torch.save(global_model.state_dict(),
                            "{}/a3c_seq_super_mario_bros_{}_{}".format(opt.saved_path, opt.world, opt.stage))
-            print("Process {}. Episode {}".format(index, curr_episode),done)
+            print("Process {}. Episode {}".format(index, curr_episode),done,debug_test_i)
         curr_episode += 1
 
         local_model.load_state_dict(global_model.state_dict())
         g_0_cnt = 0 
+        g_0_ini = torch.ones((1))
+        g_0 = torch.zeros((1, opt.num_sequence), dtype=torch.float)
         if done:
-            g_0_ini = torch.ones((1))
+            
             h_0 = torch.zeros((1, 512), dtype=torch.float)
             c_0 = torch.zeros((1, 512), dtype=torch.float)
-            g_0 = torch.zeros((1, opt.num_sequence), dtype=torch.float)
+            
             cum_r=0           
         else:
             h_0 = h_0.detach()
@@ -200,7 +202,8 @@ def local_train(index, opt, global_model, optimizer, save=False):
         total_loss.backward(retain_graph=True)
         loss_matrix[curr_episode]=total_loss.detach().cpu().numpy()
         
-        
+        if not np.isfinite(total_loss.detach().cpu().numpy()):
+            debug_test_i+=1
         if curr_episode%1000==0:
 #            print('aaaaaaaaaaa',X,Cum_reward)
             np.save("{}/loss{}".format(opt.saved_path,index), loss_matrix)
