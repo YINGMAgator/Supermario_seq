@@ -19,7 +19,7 @@ from collections import deque
 from tensorboardX import SummaryWriter
 import timeit
 import numpy as np
-import random
+
 def local_train(index, opt, global_model, optimizer, save=False):
     torch.manual_seed(123 + index)
     if save:
@@ -36,7 +36,7 @@ def local_train(index, opt, global_model, optimizer, save=False):
     done = True
     curr_step = 0
     curr_episode = 0
-    debug_test_i=0 
+    
     loss_matrix = np.zeros((100000))
     Cum_reward = []
     X = []
@@ -46,23 +46,22 @@ def local_train(index, opt, global_model, optimizer, save=False):
             if curr_episode % opt.save_interval == 0 and curr_episode > 0:
                 torch.save(global_model.state_dict(),
                            "{}/a3c_seq_super_mario_bros_{}_{}".format(opt.saved_path, opt.world, opt.stage))
-            print("Process {}. Episode {}".format(index, curr_episode),done,debug_test_i)
+            print("Process {}. Episode {}".format(index, curr_episode),done)
         curr_episode += 1
 
         local_model.load_state_dict(global_model.state_dict())
-        g_0_cnt = 0 
-        g_0_ini = torch.ones((1))
-        g_0 = torch.zeros((1, opt.num_sequence), dtype=torch.float)
+#        g_0_cnt = 0 
         if done:
-            
+            g_0_ini = torch.ones((1))
             h_0 = torch.zeros((1, 512), dtype=torch.float)
             c_0 = torch.zeros((1, 512), dtype=torch.float)
-            
-            cum_r=0           
+            g_0 = torch.zeros((1, opt.num_sequence), dtype=torch.float)
+            cum_r=0
+            g_0_cnt = 0 
         else:
             h_0 = h_0.detach()
             c_0 = c_0.detach()
-            g_0 = g_0.detach()
+#            g_0 = g_0.detach()
         
         if opt.use_gpu:
             h_0 = h_0.cuda()
@@ -76,13 +75,13 @@ def local_train(index, opt, global_model, optimizer, save=False):
         rewards = []
         reward_internals = []
         entropies = []
-        epoch_length=random.randint(opt.num_local_steps-10,opt.num_local_steps+10)
-        for aaaaa in range(epoch_length):
+
+        for aaaaa in range(opt.num_local_steps):
             curr_step += 1
             g_pre = g_0
             g_pre_cnt = g_0_cnt
 
-            logits, value, h_0, c_0, g_0,g_0_cnt,gate_flag1, gate_flag2= local_model(state, h_0, c_0,g_0_ini)
+            logits, value, h_0, c_0, g_0,g_0_cnt,gate_flag1, gate_flag2= local_model(state, h_0, c_0,g_0,g_0_ini)
 
             policy = F.softmax(logits, dim=1)
             log_policy = F.log_softmax(logits, dim=1)
@@ -150,7 +149,7 @@ def local_train(index, opt, global_model, optimizer, save=False):
         if opt.use_gpu:
             R = R.cuda()
         if not done:
-            _, R, _, _ ,_,_,gate_flag1, gate_flag2= local_model(state, h_0, c_0,g_0_ini)
+            _, R, _, _ ,_,_,gate_flag1, gate_flag2= local_model(state, h_0, c_0,g_0,g_0_ini,gate_update=False)
 
         gae = torch.zeros((1, 1), dtype=torch.float)
         if opt.use_gpu:
@@ -202,8 +201,7 @@ def local_train(index, opt, global_model, optimizer, save=False):
         total_loss.backward(retain_graph=True)
         loss_matrix[curr_episode]=total_loss.detach().cpu().numpy()
         
-        if not np.isfinite(total_loss.detach().cpu().numpy()):
-            debug_test_i+=1
+        
         if curr_episode%1000==0:
 #            print('aaaaaaaaaaa',X,Cum_reward)
             np.save("{}/loss{}".format(opt.saved_path,index), loss_matrix)
@@ -248,11 +246,12 @@ def local_test(index, opt, global_model):
                 g_0_ini = torch.ones((1))
                 state = torch.from_numpy(env.reset())
                 cum_r=0
+                g_0 = torch.zeros((1, opt.num_sequence), dtype=torch.float)
             else:
                 h_0 = h_0.detach()
                 c_0 = c_0.detach()
 
-        logits, value, h_0, c_0,g_0,g_0_cnt,gate_flag,_ = local_model(state, h_0, c_0,g_0_ini)
+        logits, value, h_0, c_0,g_0,g_0_cnt,gate_flag,_ = local_model(state, h_0, c_0,g_0,g_0_ini)
         #print(g_0,g_0_cnt)
         g_0_ini = torch.zeros((1))
         policy = F.softmax(logits, dim=1)
@@ -280,3 +279,58 @@ def local_test(index, opt, global_model):
 
             np.save("{}/Cum_reward_test".format(opt.saved_path), Cum_reward)
             np.save("{}/X_test".format(opt.saved_path), X)
+def local_test_certain(index, opt, global_model):
+    torch.manual_seed(123 + index)
+    env, num_states, num_actions = create_train_env(opt.world, opt.stage, opt.action_type,opt.final_step)
+    local_model = ActorCritic_seq(num_states, num_actions,opt.num_sequence)
+    local_model.eval()
+    done = True
+    curr_step = 0
+    actions = deque(maxlen=opt.max_actions)
+    Cum_reward = []
+    X = []
+    i=0
+    while True:
+        curr_step += 1
+        if done:
+            local_model.load_state_dict(global_model.state_dict())
+        with torch.no_grad():
+            if done:
+                h_0 = torch.zeros((1, 512), dtype=torch.float)
+                c_0 = torch.zeros((1, 512), dtype=torch.float)
+                g_0_ini = torch.ones((1))
+                state = torch.from_numpy(env.reset())
+                cum_r=0
+                g_0 = torch.zeros((1, opt.num_sequence), dtype=torch.float)
+            else:
+                h_0 = h_0.detach()
+                c_0 = c_0.detach()
+
+        logits, value, h_0, c_0,g_0,g_0_cnt,gate_flag,_ = local_model(state, h_0, c_0,g_0,g_0_ini,certain=True)
+        #print(g_0,g_0_cnt)
+        g_0_ini = torch.zeros((1))
+        policy = F.softmax(logits, dim=1)
+        action = torch.argmax(policy).item()
+        state, reward, done, info = env.step(action)
+#        env.render()
+        actions.append(action)
+        if curr_step > opt.num_global_steps or actions.count(actions[0]) == actions.maxlen:
+            done = True
+        cum_r = cum_r+reward
+        if done:
+            print(i,'test_certain',info['x_pos'])
+            i=i+1
+            curr_step = 0
+            actions.clear()
+            state = env.reset()
+            
+            X.append(info['x_pos'])
+            Cum_reward.append(cum_r)
+                
+                
+        state = torch.from_numpy(state)
+        
+        if i%100==0:
+
+            np.save("{}/Cum_reward_test_certain".format(opt.saved_path), Cum_reward)
+            np.save("{}/X_test_certain".format(opt.saved_path), X)

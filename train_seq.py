@@ -89,6 +89,9 @@ def train(opt):
     process = mp.Process(target=local_test, args=(opt.num_processes, opt, global_model))
     process.start()
     processes.append(process)
+    process = mp.Process(target=local_test_certain, args=(opt.num_processes, opt, global_model))
+    process.start()
+    processes.append(process)
     for process in processes:
         process.join()
 
