@@ -17,7 +17,7 @@ import torch
 from src.env import create_train_env
 from src.model import ActorCritic,ActorCritic_seq
 from src.optimizer import GlobalAdam
-from src.process_seq import local_train, local_test
+from src.process_seq import local_train, local_test, local_test_certain
 import torch.multiprocessing as _mp
 import shutil
 

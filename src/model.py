@@ -80,7 +80,7 @@ class ActorCritic_seq(nn.Module):
             seq_ini_flag2 = False
         else:
             seq_ini_flag1 = False
-            if certrain:
+            if certain:
                 bnl = Bernoulli (g.data[0][self.counter].round())
             else:
                 bnl = Bernoulli (g.data[0][self.counter])
