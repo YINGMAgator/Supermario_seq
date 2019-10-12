@@ -46,6 +46,9 @@ def get_args():
     parser.add_argument("--max_test_steps", type=int, default=10000, help="Max Number of steps for test")
     parser.add_argument("--max_actions", type=int, default=200, help="Maximum repetition steps in test phase")
     parser.add_argument("--log_path", type=str, default="tensorboard/a3c_super_mario_bros")
+    parser.add_argument("--start_initial", type=str, default="random",help="inital method, can be random, noop or reset")
+    parser.add_argument("--start_interval", type=str, default=100)
+    
     parser.add_argument("--saved_path", type=str, default="trained_models")
     parser.add_argument("--load_from_previous_stage", type=bool, default=False,
                         help="Load weight from previous trained stage")

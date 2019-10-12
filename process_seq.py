@@ -32,8 +32,19 @@ def local_test1_allpro(opt,env,local_model_test,Cum_reward,X,Num_interaction):
         h_0 = torch.zeros((1, 512), dtype=torch.float)
         c_0 = torch.zeros((1, 512), dtype=torch.float)
         g_0_ini = torch.ones((1))
-        state = torch.from_numpy(env.reset())
+        
         g_0 = torch.zeros((1, opt.num_sequence), dtype=torch.float)
+        
+        env.reset()
+        if opt.start_initial =='random':
+            for i in range(opt.start_interval):
+                state, reward, done, info = env.step(env.action_space.sample())
+                if done:
+                    env.reset()       
+            state=torch.from_numpy(state)
+        else:
+            state = torch.from_numpy(env.reset())
+        
     
     num_interaction=1
     while True:
@@ -77,8 +88,17 @@ def local_test2_allmax(opt,env,local_model_test,Cum_reward,X,Num_interaction):
         h_0 = torch.zeros((1, 512), dtype=torch.float)
         c_0 = torch.zeros((1, 512), dtype=torch.float)
         g_0_ini = torch.ones((1))
-        state = torch.from_numpy(env.reset())
+
         g_0 = torch.zeros((1, opt.num_sequence), dtype=torch.float)
+        env.reset()
+        if opt.start_initial =='random':
+            for i in range(opt.start_interval):
+                state, reward, done, info = env.step(env.action_space.sample())
+                if done:
+                    env.reset()       
+            state=torch.from_numpy(state)
+        else:
+            state = torch.from_numpy(env.reset())
     
     num_interaction=1
     while True:
@@ -120,9 +140,17 @@ def local_test3_actionpro_gatemax(opt,env,local_model_test,Cum_reward,X,Num_inte
         h_0 = torch.zeros((1, 512), dtype=torch.float)
         c_0 = torch.zeros((1, 512), dtype=torch.float)
         g_0_ini = torch.ones((1))
-        state = torch.from_numpy(env.reset())
         g_0 = torch.zeros((1, opt.num_sequence), dtype=torch.float)
-    
+        env.reset()
+        if opt.start_initial =='random':
+            for i in range(opt.start_interval):
+                state, reward, done, info = env.step(env.action_space.sample())
+                if done:
+                    env.reset()       
+            state=torch.from_numpy(state)
+        else:
+            state = torch.from_numpy(env.reset())
+            
     num_interaction=1
     while True:
         curr_step_test += 1
@@ -295,9 +323,20 @@ def local_train(index, opt, global_model, optimizer, save=False):
             if done:
                 print(info['x_pos'])   
                 curr_step = 0
-                state = torch.from_numpy(env.reset())
+
+                env.reset()
+                if opt.start_initial =='random':
+                    for i in range(opt.start_interval):
+                        state, reward, done, info = env.step(env.action_space.sample())
+                        if done:
+                            env.reset()       
+                    state=torch.from_numpy(state)
+                else:
+                    state = torch.from_numpy(env.reset())
                 if opt.use_gpu:
-                    state = state.cuda()
+                    state = state.cuda()            
+            
+            
 
             values.append(value)
             log_policies.append(log_policy[0, action])
