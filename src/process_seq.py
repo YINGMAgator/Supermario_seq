@@ -44,8 +44,13 @@ def local_test1_allpro(opt,env,local_model_test,Cum_reward,X,Num_interaction):
             state=torch.from_numpy(state)
         else:
             state = torch.from_numpy(env.reset())
+        if opt.use_gpu:
+            state = state.cuda()        
+            h_0 = h_0.cuda()
+            c_0 = c_0.cuda()
+            g_0_ini = g_0_ini.cuda() 
+            g_0 = g_0.cuda()
         
-    
     num_interaction=1
     while True:
         curr_step_test += 1
@@ -55,6 +60,8 @@ def local_test1_allpro(opt,env,local_model_test,Cum_reward,X,Num_interaction):
     
         logits, value, h_0, c_0,g_0,g_0_cnt,gate_flag,_ = local_model_test(state, h_0, c_0,g_0,g_0_ini)
         g_0_ini = torch.zeros((1))
+        if opt.use_gpu:
+            g_0_ini = g_0_ini.cuda()         
         policy = F.softmax(logits, dim=1)
         
         m = Categorical(policy)
@@ -62,6 +69,8 @@ def local_test1_allpro(opt,env,local_model_test,Cum_reward,X,Num_interaction):
             
         state, reward, done, info = env.step(action)
         state = torch.from_numpy(state)
+        if opt.use_gpu:
+            state = state.cuda()
         cum_r = cum_r+reward
         actions.append(action)
         if g_0_cnt==0:
@@ -99,7 +108,13 @@ def local_test2_allmax(opt,env,local_model_test,Cum_reward,X,Num_interaction):
             state=torch.from_numpy(state)
         else:
             state = torch.from_numpy(env.reset())
-    
+        if opt.use_gpu:
+            state = state.cuda()        
+            h_0 = h_0.cuda()
+            c_0 = c_0.cuda()
+            g_0_ini = g_0_ini.cuda() 
+            g_0 = g_0.cuda()
+        
     num_interaction=1
     while True:
         curr_step_test += 1
@@ -109,10 +124,14 @@ def local_test2_allmax(opt,env,local_model_test,Cum_reward,X,Num_interaction):
     
         logits, value, h_0, c_0,g_0,g_0_cnt,gate_flag,_ = local_model_test(state, h_0, c_0,g_0,g_0_ini,certain=True)
         g_0_ini = torch.zeros((1))
+        if opt.use_gpu:
+            g_0_ini = g_0_ini.cuda()         
         policy = F.softmax(logits, dim=1)
         action = torch.argmax(policy).item()
         state, reward, done, info = env.step(action)
         state = torch.from_numpy(state)
+        if opt.use_gpu:
+            state = state.cuda()
         cum_r = cum_r+reward
         actions.append(action)
         if g_0_cnt==0:
@@ -150,6 +169,12 @@ def local_test3_actionpro_gatemax(opt,env,local_model_test,Cum_reward,X,Num_inte
             state=torch.from_numpy(state)
         else:
             state = torch.from_numpy(env.reset())
+        if opt.use_gpu:
+            state = state.cuda()        
+            h_0 = h_0.cuda()
+            c_0 = c_0.cuda()
+            g_0_ini = g_0_ini.cuda() 
+            g_0 = g_0.cuda()
             
     num_interaction=1
     while True:
@@ -160,10 +185,16 @@ def local_test3_actionpro_gatemax(opt,env,local_model_test,Cum_reward,X,Num_inte
     
         logits, value, h_0, c_0,g_0,g_0_cnt,gate_flag,_ = local_model_test(state, h_0, c_0,g_0,g_0_ini,certain=True)
         g_0_ini = torch.zeros((1))
+        if opt.use_gpu:
+            g_0_ini = g_0_ini.cuda() 
+            
+            
         policy = F.softmax(logits, dim=1)
         action = torch.argmax(policy).item()
         state, reward, done, info = env.step(action)
         state = torch.from_numpy(state)
+        if opt.use_gpu:
+            state = state.cuda()
         cum_r = cum_r+reward
         actions.append(action)
         if g_0_cnt==0:
