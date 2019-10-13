@@ -55,7 +55,8 @@ class ActorCritic_seq(nn.Module):
         self.conv2_gate = nn.Conv2d(32, 32, 3, stride=2, padding=1)
         self.conv3_gate = nn.Conv2d(32, 32, 3, stride=2, padding=1)
         self.conv4_gate = nn.Conv2d(32, 32, 3, stride=2, padding=1)
-        self.gate_linear = nn.Linear(32 * 6 * 6, self.num_sequence)
+        if self.num_sequence!=0:
+            self.gate_linear = nn.Linear(32 * 6 * 6, self.num_sequence)
         self.counter = 0
 
 #        self.bnl = Bernoulli (0.5)
@@ -97,12 +98,15 @@ class ActorCritic_seq(nn.Module):
             if seq_ini_flag1 or seq_ini_flag2:
                 
                 self.counter = 0
-                g = F.relu(self.conv1(x))
-                g = F.relu(self.conv2(g))
-                g = F.relu(self.conv3(g))
-                g = F.relu(self.conv4(g))   
-                g = torch.sigmoid(self.gate_linear(g.view(g.size(0),-1)))
                 
+                if self.num_sequence!=0:
+                    g = F.relu(self.conv1(x))
+                    g = F.relu(self.conv2(g))
+                    g = F.relu(self.conv3(g))
+                    g = F.relu(self.conv4(g))   
+                    g = torch.sigmoid(self.gate_linear(g.view(g.size(0),-1)))
+                else:
+                    self.g = torch.zeros((1, self.num_sequence), dtype=torch.float)
                 x = F.relu(self.conv1(x))
                 x = F.relu(self.conv2(x))
                 x = F.relu(self.conv3(x))

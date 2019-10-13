@@ -20,6 +20,167 @@ from tensorboardX import SummaryWriter
 import timeit
 import numpy as np
 
+
+def local_test1_allpro(opt,env,local_model_test,Cum_reward,X,Num_interaction): 
+
+
+    curr_step_test = 0
+    cum_r=0
+    actions = deque(maxlen=opt.max_actions)
+    
+    with torch.no_grad():
+        h_0 = torch.zeros((1, 512), dtype=torch.float)
+        c_0 = torch.zeros((1, 512), dtype=torch.float)
+        g_0_ini = torch.ones((1))
+        
+        g_0 = torch.zeros((1, opt.num_sequence), dtype=torch.float)
+        
+        env.reset()
+        if opt.start_initial =='random':
+            for i in range(opt.start_interval):
+                state, reward, done, info = env.step(env.action_space.sample())
+                if done:
+                    env.reset()       
+            state=torch.from_numpy(state)
+        else:
+            state = torch.from_numpy(env.reset())
+        
+    
+    num_interaction=1
+    while True:
+        curr_step_test += 1
+        with torch.no_grad():
+            h_0 = h_0.detach()
+            c_0 = c_0.detach()
+    
+        logits, value, h_0, c_0,g_0,g_0_cnt,gate_flag,_ = local_model_test(state, h_0, c_0,g_0,g_0_ini)
+        g_0_ini = torch.zeros((1))
+        policy = F.softmax(logits, dim=1)
+        
+        m = Categorical(policy)
+        action = m.sample().item()
+            
+        state, reward, done, info = env.step(action)
+        state = torch.from_numpy(state)
+        cum_r = cum_r+reward
+        actions.append(action)
+        if g_0_cnt==0:
+            num_interaction+=1
+        if curr_step_test > opt.max_test_steps or actions.count(actions[0]) == actions.maxlen:
+            done = True
+        
+        if done:
+            X.append(info['x_pos'])
+            Cum_reward.append(cum_r)   
+            Num_interaction.append(num_interaction)                    
+            break
+    
+    return Cum_reward,X,Num_interaction
+
+def local_test2_allmax(opt,env,local_model_test,Cum_reward,X,Num_interaction): 
+
+
+    curr_step_test = 0
+    cum_r=0
+    actions = deque(maxlen=opt.max_actions)
+    
+    with torch.no_grad():
+        h_0 = torch.zeros((1, 512), dtype=torch.float)
+        c_0 = torch.zeros((1, 512), dtype=torch.float)
+        g_0_ini = torch.ones((1))
+
+        g_0 = torch.zeros((1, opt.num_sequence), dtype=torch.float)
+        env.reset()
+        if opt.start_initial =='random':
+            for i in range(opt.start_interval):
+                state, reward, done, info = env.step(env.action_space.sample())
+                if done:
+                    env.reset()       
+            state=torch.from_numpy(state)
+        else:
+            state = torch.from_numpy(env.reset())
+    
+    num_interaction=1
+    while True:
+        curr_step_test += 1
+        with torch.no_grad():
+            h_0 = h_0.detach()
+            c_0 = c_0.detach()
+    
+        logits, value, h_0, c_0,g_0,g_0_cnt,gate_flag,_ = local_model_test(state, h_0, c_0,g_0,g_0_ini,certain=True)
+        g_0_ini = torch.zeros((1))
+        policy = F.softmax(logits, dim=1)
+        action = torch.argmax(policy).item()
+        state, reward, done, info = env.step(action)
+        state = torch.from_numpy(state)
+        cum_r = cum_r+reward
+        actions.append(action)
+        if g_0_cnt==0:
+            num_interaction+=1
+        if curr_step_test > opt.max_test_steps or actions.count(actions[0]) == actions.maxlen:
+            done = True
+        
+        if done:
+            X.append(info['x_pos'])
+            Cum_reward.append(cum_r)   
+            Num_interaction.append(num_interaction)                    
+            break
+    
+    return Cum_reward,X,Num_interaction
+
+
+def local_test3_actionpro_gatemax(opt,env,local_model_test,Cum_reward,X,Num_interaction): 
+
+
+    curr_step_test = 0
+    cum_r=0
+    actions = deque(maxlen=opt.max_actions)
+    
+    with torch.no_grad():
+        h_0 = torch.zeros((1, 512), dtype=torch.float)
+        c_0 = torch.zeros((1, 512), dtype=torch.float)
+        g_0_ini = torch.ones((1))
+        g_0 = torch.zeros((1, opt.num_sequence), dtype=torch.float)
+        env.reset()
+        if opt.start_initial =='random':
+            for i in range(opt.start_interval):
+                state, reward, done, info = env.step(env.action_space.sample())
+                if done:
+                    env.reset()       
+            state=torch.from_numpy(state)
+        else:
+            state = torch.from_numpy(env.reset())
+            
+    num_interaction=1
+    while True:
+        curr_step_test += 1
+        with torch.no_grad():
+            h_0 = h_0.detach()
+            c_0 = c_0.detach()
+    
+        logits, value, h_0, c_0,g_0,g_0_cnt,gate_flag,_ = local_model_test(state, h_0, c_0,g_0,g_0_ini,certain=True)
+        g_0_ini = torch.zeros((1))
+        policy = F.softmax(logits, dim=1)
+        action = torch.argmax(policy).item()
+        state, reward, done, info = env.step(action)
+        state = torch.from_numpy(state)
+        cum_r = cum_r+reward
+        actions.append(action)
+        if g_0_cnt==0:
+            num_interaction+=1
+        if curr_step_test > opt.max_test_steps or actions.count(actions[0]) == actions.maxlen:
+            done = True
+        
+        if done:
+            X.append(info['x_pos'])
+            Cum_reward.append(cum_r)   
+            Num_interaction.append(num_interaction)                    
+            break
+    
+    return Cum_reward,X,Num_interaction
+
+
+
 def local_train(index, opt, global_model, optimizer, save=False):
     torch.manual_seed(123 + index)
     if save:
@@ -37,10 +198,36 @@ def local_train(index, opt, global_model, optimizer, save=False):
     curr_step = 0
     curr_episode = 0
     
-    loss_matrix = np.zeros((100000))
-    Cum_reward = []
-    X = []
-    Episode = []    
+    loss_matrix = []
+    
+    Cum_reward1 = []
+    X1 = []
+    Num_interaction1=[]
+    env1, num_states, num_actions = create_train_env(opt.world, opt.stage, opt.action_type,opt.final_step)
+    local_model1 = ActorCritic_seq(num_states, num_actions,opt.num_sequence)
+    if opt.use_gpu:
+        local_model1.cuda()
+    local_model1.eval() 
+
+    Cum_reward2 = []
+    X2 = []
+    Num_interaction2=[]
+    env2, num_states, num_actions = create_train_env(opt.world, opt.stage, opt.action_type,opt.final_step)
+    local_model2 = ActorCritic_seq(num_states, num_actions,opt.num_sequence)
+    if opt.use_gpu:
+        local_model2.cuda()
+    local_model2.eval() 
+
+    Cum_reward3 = []
+    X3 = []
+    Num_interaction3=[]
+    env3, num_states, num_actions = create_train_env(opt.world, opt.stage, opt.action_type,opt.final_step)
+    local_model3 = ActorCritic_seq(num_states, num_actions,opt.num_sequence)
+    if opt.use_gpu:
+        local_model3.cuda()
+    local_model3.eval() 
+
+    
     while True:
         if save:
             if curr_episode % opt.save_interval == 0 and curr_episode > 0:
@@ -48,7 +235,16 @@ def local_train(index, opt, global_model, optimizer, save=False):
                            "{}/a3c_seq_super_mario_bros_{}_{}".format(opt.saved_path, opt.world, opt.stage))
             print("Process {}. Episode {}".format(index, curr_episode),done)
         curr_episode += 1
-
+        if curr_episode%opt.log_interval==0:
+            local_model1.load_state_dict(global_model.state_dict())            
+            Cum_reward1,X1,Num_interaction1 = local_test1_allpro(opt,env1,local_model1,Cum_reward1,X1,Num_interaction1)  
+            
+            local_model2.load_state_dict(global_model.state_dict())            
+            Cum_reward2,X2,Num_interaction2 = local_test2_allmax(opt,env2,local_model2,Cum_reward2,X2,Num_interaction2)
+            
+            local_model3.load_state_dict(global_model.state_dict())            
+            Cum_reward3,X3,Num_interaction3 = local_test3_actionpro_gatemax(opt,env3,local_model3,Cum_reward3,X3,Num_interaction3)
+            
         local_model.load_state_dict(global_model.state_dict())
 #        g_0_cnt = 0 
         if done:
@@ -127,9 +323,20 @@ def local_train(index, opt, global_model, optimizer, save=False):
             if done:
                 print(info['x_pos'])   
                 curr_step = 0
-                state = torch.from_numpy(env.reset())
+
+                env.reset()
+                if opt.start_initial =='random':
+                    for i in range(opt.start_interval):
+                        state, reward, done, info = env.step(env.action_space.sample())
+                        if done:
+                            env.reset()       
+                    state=torch.from_numpy(state)
+                else:
+                    state = torch.from_numpy(env.reset())
                 if opt.use_gpu:
-                    state = state.cuda()
+                    state = state.cuda()            
+            
+            
 
             values.append(value)
             log_policies.append(log_policy[0, action])
@@ -139,10 +346,6 @@ def local_train(index, opt, global_model, optimizer, save=False):
             entropies.append(entropy)
             cum_r+=reward
             if done:
-                Episode.append(curr_episode)
-                X.append(info['x_pos'])
-                Cum_reward.append(cum_r)
-                
                 break
 #        print(log_policies,log_gates)
         R = torch.zeros((1, 1), dtype=torch.float)
@@ -199,16 +402,24 @@ def local_train(index, opt, global_model, optimizer, save=False):
         writer.add_scalar("Train_{}/Loss".format(index), total_loss, curr_episode)
         optimizer.zero_grad()
         total_loss.backward(retain_graph=True)
-        loss_matrix[curr_episode]=total_loss.detach().cpu().numpy()
+        loss_matrix.append(total_loss.detach().cpu().numpy())
         
         
-        if curr_episode%1000==0:
+        if curr_episode%opt.save_interval==0:
 #            print('aaaaaaaaaaa',X,Cum_reward)
             np.save("{}/loss{}".format(opt.saved_path,index), loss_matrix)
-            np.save("{}/Cum_reward{}".format(opt.saved_path,index), Cum_reward)
-            np.save("{}/X{}".format(opt.saved_path,index), X)
-            np.save("{}/Episode{}".format(opt.saved_path,index), Episode)
+            np.save("{}/Cum_reward1{}".format(opt.saved_path,index), Cum_reward1)
+            np.save("{}/X1{}".format(opt.saved_path,index), X1)
+            np.save("{}/Num_interaction1{}".format(opt.saved_path,index), Num_interaction1)
 
+            np.save("{}/Cum_reward2{}".format(opt.saved_path,index), Cum_reward2)
+            np.save("{}/X2{}".format(opt.saved_path,index), X2)
+            np.save("{}/Num_interaction2{}".format(opt.saved_path,index), Num_interaction2)
+
+            np.save("{}/Cum_reward3{}".format(opt.saved_path,index), Cum_reward3)
+            np.save("{}/X3{}".format(opt.saved_path,index), X3)
+            np.save("{}/Num_interaction3{}".format(opt.saved_path,index), Num_interaction3)            
+            
         for local_param, global_param in zip(local_model.parameters(), global_model.parameters()):
             if global_param.grad is not None:
                 break
