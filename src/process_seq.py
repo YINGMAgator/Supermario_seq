@@ -79,13 +79,12 @@ def local_test1_allpro(opt,env,local_model_test,Cum_reward,X,Num_interaction):
             done = True
         
         if done:
-            print('all_pro',info['x_pos'])
             X.append(info['x_pos'])
             Cum_reward.append(cum_r)   
             Num_interaction.append(num_interaction)                    
             break
     
-    return Cum_reward,X,Num_interaction
+    return Cum_reward,X,Num_interaction,info['x_pos']
 
 def local_test2_allmax(opt,env,local_model_test,Cum_reward,X,Num_interaction): 
 
@@ -141,13 +140,13 @@ def local_test2_allmax(opt,env,local_model_test,Cum_reward,X,Num_interaction):
             done = True
         
         if done:
-            print('allmax',info['x_pos'])
+ 
             X.append(info['x_pos'])
             Cum_reward.append(cum_r)   
             Num_interaction.append(num_interaction)                    
             break
     
-    return Cum_reward,X,Num_interaction
+    return Cum_reward,X,Num_interaction,info['x_pos']
 
 
 def local_test3_actionpro_gatemax(opt,env,local_model_test,Cum_reward,X,Num_interaction): 
@@ -208,13 +207,12 @@ def local_test3_actionpro_gatemax(opt,env,local_model_test,Cum_reward,X,Num_inte
             done = True
         
         if done:
-            print('action_pro_gatemax',info['x_pos'])
             X.append(info['x_pos'])
             Cum_reward.append(cum_r)   
             Num_interaction.append(num_interaction)                    
             break
     
-    return Cum_reward,X,Num_interaction
+    return Cum_reward,X,Num_interaction,info['x_pos']
 
 
 
@@ -274,14 +272,14 @@ def local_train(index, opt, global_model, optimizer, save=False):
         curr_episode += 1
         if curr_episode%opt.log_interval==0:
             local_model1.load_state_dict(global_model.state_dict())            
-            Cum_reward1,X1,Num_interaction1 = local_test1_allpro(opt,env1,local_model1,Cum_reward1,X1,Num_interaction1)  
+            Cum_reward1,X1,Num_interaction1,x_arrive_all_pro = local_test1_allpro(opt,env1,local_model1,Cum_reward1,X1,Num_interaction1)  
             
             local_model2.load_state_dict(global_model.state_dict())            
-            Cum_reward2,X2,Num_interaction2 = local_test2_allmax(opt,env2,local_model2,Cum_reward2,X2,Num_interaction2)
+            Cum_reward2,X2,Num_interaction2,x_arrive_all_max = local_test2_allmax(opt,env2,local_model2,Cum_reward2,X2,Num_interaction2)
             
             local_model3.load_state_dict(global_model.state_dict())            
-            Cum_reward3,X3,Num_interaction3 = local_test3_actionpro_gatemax(opt,env3,local_model3,Cum_reward3,X3,Num_interaction3)
-            
+            Cum_reward3,X3,Num_interaction3,x_arrive_actionpro_gatemax = local_test3_actionpro_gatemax(opt,env3,local_model3,Cum_reward3,X3,Num_interaction3)
+        print(x_arrive_all_pro,x_arrive_all_max,x_arrive_actionpro_gatemax)
         local_model.load_state_dict(global_model.state_dict())
 #        g_0_cnt = 0 
         if done:
