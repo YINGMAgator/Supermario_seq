@@ -279,7 +279,7 @@ def local_train(index, opt, global_model, optimizer, save=False):
             
             local_model3.load_state_dict(global_model.state_dict())            
             Cum_reward3,X3,Num_interaction3,x_arrive_actionpro_gatemax = local_test3_actionpro_gatemax(opt,env3,local_model3,Cum_reward3,X3,Num_interaction3)
-        print(x_arrive_all_pro,x_arrive_all_max,x_arrive_actionpro_gatemax)
+            print(x_arrive_all_pro,x_arrive_all_max,x_arrive_actionpro_gatemax)
         local_model.load_state_dict(global_model.state_dict())
 #        g_0_cnt = 0 
         if done:

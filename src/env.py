@@ -80,7 +80,9 @@ class CustomSkipFrame(Wrapper):
         total_reward = 0
         states = []
         state, reward, done, info = self.env.step(action)
-        for i in range(self.skip):
+        states.append(state)
+        total_reward += reward
+        for i in range(self.skip-1):
             if not done:
                 state, reward, done, info = self.env.step(action)
                 total_reward += reward
@@ -88,7 +90,7 @@ class CustomSkipFrame(Wrapper):
             else:
                 states.append(state)
         states = np.concatenate(states, 0)[None, :, :, :]
-        return states.astype(np.float32), reward, done, info
+        return states.astype(np.float32), total_reward, done, info
 
     def reset(self):
         state = self.env.reset()
