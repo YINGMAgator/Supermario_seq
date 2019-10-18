@@ -340,7 +340,7 @@ def local_train(index, opt, global_model, optimizer, save=False):
 #                log_gate = log_gate+torch.log(g_0[0,g_0_cnt-1])
                 log_gate = torch.log(g_0[0,g_0_cnt-1])
                 if reward>0:
-                    reward_internal = reward+0.01
+                    reward_internal = reward+0.1
             g_0_ini = torch.zeros((1))
             if opt.use_gpu:
                 g_0_ini = g_0_ini.cuda()
