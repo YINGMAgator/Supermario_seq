@@ -252,7 +252,10 @@ def local_train(index, opt, global_model, optimizer, save=False):
         start_time = timeit.default_timer()
     writer = SummaryWriter(opt.log_path)
     if not opt.saved_path:
-        saved_path="{}_{}_{}_{}".format(opt.game,opt.num_sequence,opt.internal_reward,opt.lr)    
+        if opt.game == "Supermario":
+            saved_path="{}_{}_{}_{}".format(opt.game,opt.num_sequence,opt.internal_reward,opt.world,opt.stage)
+        else:
+            saved_path="{}_{}".format(opt.game,opt.num_sequence)
     else:
         saved_path=opt.saved_path
     if opt.game == "Supermario":
