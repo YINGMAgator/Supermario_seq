@@ -13,7 +13,7 @@ from src.model import ActorCritic_seq
 import torch.nn.functional as F
 from torch.distributions import Categorical
 from collections import deque
-from tensorboardX import SummaryWriter
+#from tensorboardX import SummaryWriter
 import timeit
 import numpy as np
 
@@ -250,7 +250,7 @@ def local_train(index, opt, global_model, optimizer, save=False):
 #    torch.manual_seed(123 + index)
     if save:
         start_time = timeit.default_timer()
-    writer = SummaryWriter(opt.log_path)
+#    writer = SummaryWriter(opt.log_path)
     if not opt.saved_path:
         if opt.game == "Supermario":
             saved_path="{}_{}_{}_{}".format(opt.game,opt.num_sequence,opt.internal_reward,opt.world,opt.stage)
@@ -321,11 +321,9 @@ def local_train(index, opt, global_model, optimizer, save=False):
                 if opt.game=='Supermario':
 #                    torch.save(global_model.state_dict(),
 #                               "{}/a3c_seq_super_mario_bros_{}_{}".format(opt.saved_path, opt.world, opt.stage))
-                    torch.save(global_model.state_dict(),
-                               "{}_{}_{}_{}/trained_model_{}_{}".format(opt.game,opt.num_sequence,opt.internal_reward,opt.lr, opt.world, opt.stage))    
+                    torch.save(global_model.state_dict(),saved_path+"/trained_model_{}_{}")    
                 else:
-                    torch.save(global_model.state_dict(),
-                               "{}_{}_{}_{}/trained_model".format(opt.game,opt.num_sequence,opt.internal_reward,opt.lr))                    
+                    torch.save(global_model.state_dict(),saved_path+"/trained_model")                    
 #            print("Process {}. Episode {}".format(index, curr_episode),done)
         
         if curr_episode%opt.log_interval==0:
@@ -502,7 +500,7 @@ def local_train(index, opt, global_model, optimizer, save=False):
             total_loss = -actor_loss + critic_loss*opt.value_loss_coef - opt.beta * entropy_loss
         else:
             total_loss = -actor_loss + critic_loss - opt.beta * entropy_loss
-        writer.add_scalar("Train_{}/Loss".format(index), total_loss, curr_episode)
+#        writer.add_scalar("Train_{}/Loss".format(index), total_loss, curr_episode)
         optimizer.zero_grad()
         total_loss.backward(retain_graph=True)
         if opt.max_grad_norm:
