@@ -35,28 +35,28 @@ def get_args():
     parser.add_argument("--num_local_steps", type=int, default=50)
     parser.add_argument("--num_global_steps", type=int, default=5e6)
     parser.add_argument("--num_processes", type=int, default=6)
-    parser.add_argument("--num_sequence", type=int, default=0)
+    parser.add_argument("--num_sequence", type=int, default=5)
     parser.add_argument("--final_step", type=int, default=5000)
     parser.add_argument("--save_interval", type=int, default=500, help="Number of steps between savings")
     parser.add_argument("--log_interval", type=int, default=10, help="Number of steps between log")
     parser.add_argument("--max_test_steps", type=int, default=10000, help="Max Number of steps for test")
     parser.add_argument("--max_actions", type=int, default=200, help="Maximum repetition steps in test phase")
     parser.add_argument("--log_path", type=str, default="tensorboard/a3c_super_mario_bros")
-    parser.add_argument("--start_initial", type=str, default="reset",help="inital method, can be random, noop or reset")
+    parser.add_argument("--start_initial", type=str, default="random",help="inital method, can be random, noop or reset")
     parser.add_argument("--start_interval", type=str, default=20)
     parser.add_argument("--internal_reward",type=float,default=0.1)
-    parser.add_argument("--saved_path", type=str, default=None)
+    parser.add_argument("--saved_path", type=str, default="training_result")
     
     ##
     parser.add_argument("--max_grad_norm", type=float, default=None)
     parser.add_argument("--value_loss_coef", type=float, default=None)
     
-#    parser.add_argument("--saved_path", type=str, default="trained_models")
+    parser.add_argument("--load_model_path", type=str, default=None)
     parser.add_argument("--load_from_previous_stage", type=bool, default=False,
                         help="Load weight from previous trained stage")
     parser.add_argument("--use_gpu", type=str2bool, default=False)
     # atari arguement 
-    parser.add_argument("--game", type=str, default="MsPacman-v0", help= "game select, can be Supermario, MsPacman-v0")    
+    parser.add_argument("--game", type=str, default="Supermario", help= "game select, can be Supermario, MsPacman-v0")    
     args = parser.parse_args()
     return args
 
@@ -87,7 +87,13 @@ def train(opt):
     if opt.use_gpu:
         global_model.cuda()
     global_model.share_memory()
-    
+
+
+    if opt.load_model_path:
+        file_ = opt.load_model_path+"/trained_model"
+        global_model.load_state_dict(torch.load(file_))
+            
+            
     if opt.load_from_previous_stage:
         if opt.stage == 1:
             previous_world = opt.world - 1

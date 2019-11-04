@@ -98,22 +98,17 @@ class ActorCritic_seq(nn.Module):
             if seq_ini_flag1 or seq_ini_flag2:
                 
                 self.counter = 0
-                
-                if self.num_sequence!=0:
-                    g = F.relu(self.conv1(x))
-                    g = F.relu(self.conv2(g))
-                    g = F.relu(self.conv3(g))
-                    g = F.relu(self.conv4(g))   
-                    g = torch.sigmoid(self.gate_linear(g.view(g.size(0),-1)))
-                else:
-                    self.g = torch.zeros((1, self.num_sequence), dtype=torch.float)
                 x = F.relu(self.conv1(x))
                 x = F.relu(self.conv2(x))
                 x = F.relu(self.conv3(x))
-                x = F.relu(self.conv4(x))  
-                
+                x = F.relu(self.conv4(x))                  
                 self.x_pre = x
-                
+           
+                if self.num_sequence!=0: 
+                    g = torch.sigmoid(self.gate_linear(x.view(x.size(0),-1)))
+                else:
+                    self.g = torch.zeros((1, self.num_sequence), dtype=torch.float)
+                                        
             hx, cx = self.lstm(self.x_pre.view(self.x_pre.size(0), -1), (hx, cx))   
         else:
             if seq_ini_flag1 or seq_ini_flag2:

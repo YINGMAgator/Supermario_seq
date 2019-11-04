@@ -17,7 +17,7 @@ from collections import deque
 import timeit
 import numpy as np
 
-def local_test1_allpro(opt,env,local_model_test,Cum_reward,X,Num_interaction,save): 
+def local_test_iter(opt,env,local_model_test,Cum_reward,SCORE,X,Num_interaction,videosave,action_max,gate_max): 
 
 
     curr_step_test = 0
@@ -37,7 +37,7 @@ def local_test1_allpro(opt,env,local_model_test,Cum_reward,X,Num_interaction,sav
                 if opt.game =='Supermario':
                     state, reward, _,done, info = env.step(env.action_space.sample())
                 else:
-                    state, reward, _,done, info = env.step(env.action_space.sample(),0,video_save=False)
+                    state, reward, _,done, info = env.step(env.action_space.sample(),0,video_save=videosave)
                 if done:
                     env.reset()       
             state=torch.from_numpy(state)
@@ -60,19 +60,27 @@ def local_test1_allpro(opt,env,local_model_test,Cum_reward,X,Num_interaction,sav
             h_0 = h_0.detach()
             c_0 = c_0.detach()
     
-        logits, value, h_0, c_0,g_0,g_0_cnt,gate_flag,_ = local_model_test(state, h_0, c_0,g_0,g_0_ini)
+        if gate_max:
+            logits, value, h_0, c_0,g_0,g_0_cnt,gate_flag,_ = local_model_test(state, h_0, c_0,g_0,g_0_ini,certain=True)
+        else:
+            logits, value, h_0, c_0,g_0,g_0_cnt,gate_flag,_ = local_model_test(state, h_0, c_0,g_0,g_0_ini)
         g_0_ini = torch.zeros((1))
         if opt.use_gpu:
             g_0_ini = g_0_ini.cuda()         
         policy = F.softmax(logits, dim=1)
         
-        m = Categorical(policy)
-        action = m.sample().item()
+
+        if action_max:
+            action = torch.argmax(policy).item()
+        else:
+            m = Categorical(policy)
+            action = m.sample().item()  
+            
             
         if opt.game =='Supermario':
             state, reward, raw_reward,done, info = env.step(action)
         else:
-            state, reward, raw_reward,done, info = env.step(action,g_0_cnt,video_save=False)
+            state, reward, raw_reward,done, info = env.step(action,g_0_cnt,video_save=videosave)
  
 #        if save:
 #            print(reward,raw_reward)
@@ -92,157 +100,158 @@ def local_test1_allpro(opt,env,local_model_test,Cum_reward,X,Num_interaction,sav
         if done:
             if opt.game=="Supermario":
                 x=info['x_pos']
-            else:
-                x=score
-            X.append(x)
+               
+                X.append(x)
+            SCORE.append(score)
             Cum_reward.append(cum_r)   
             Num_interaction.append(num_interaction)                    
             break
-    
-    return Cum_reward,X,Num_interaction,x
 
-def local_test2_allmax(opt,env,local_model_test,Cum_reward,X,Num_interaction,save): 
+    return Cum_reward,SCORE,X,Num_interaction,x
 
 
-    curr_step_test = 0
-    cum_r=0
-    actions = deque(maxlen=opt.max_actions)
-    
-    with torch.no_grad():
-        h_0 = torch.zeros((1, 512), dtype=torch.float)
-        c_0 = torch.zeros((1, 512), dtype=torch.float)
-        g_0_ini = torch.ones((1))
-
-        g_0 = torch.zeros((1, opt.num_sequence), dtype=torch.float)
-        env.reset()
-        if opt.start_initial =='random':
-            for i in range(opt.start_interval):
-                state, reward,_, done, info = env.step(env.action_space.sample())
-                if done:
-                    env.reset()       
-            state=torch.from_numpy(state)
-        else:
-            state = torch.from_numpy(env.reset())
-        if opt.use_gpu:
-            state = state.cuda()        
-            h_0 = h_0.cuda()
-            c_0 = c_0.cuda()
-            g_0_ini = g_0_ini.cuda() 
-            g_0 = g_0.cuda()
-        
-    num_interaction=1
-    score = 0
-    while True:
-        curr_step_test += 1
-        with torch.no_grad():
-            h_0 = h_0.detach()
-            c_0 = c_0.detach()
-    
-        logits, value, h_0, c_0,g_0,g_0_cnt,gate_flag,_ = local_model_test(state, h_0, c_0,g_0,g_0_ini,certain=True)
-        g_0_ini = torch.zeros((1))
-        if opt.use_gpu:
-            g_0_ini = g_0_ini.cuda()         
-        policy = F.softmax(logits, dim=1)
-        action = torch.argmax(policy).item()
-        state, reward, raw_reward,done, info = env.step(action)
-        score += raw_reward
-        state = torch.from_numpy(state)
-        if opt.use_gpu:
-            state = state.cuda()
-        cum_r = cum_r+reward
-        actions.append(action)
-        if g_0_cnt==0:
-            num_interaction+=1
-        if curr_step_test > opt.max_test_steps or actions.count(actions[0]) == actions.maxlen:
-            done = True
-        
-        if done:
-            if opt.game=="Supermario":
-                x=info['x_pos']
-            else:
-                x=score
-            X.append(x)
-            Cum_reward.append(cum_r)   
-            Num_interaction.append(num_interaction)                    
-            break
-    
-    return Cum_reward,X,Num_interaction,x
-
-
-def local_test3_actionpro_gatemax(opt,env,local_model_test,Cum_reward,X,Num_interaction,save): 
-
-
-    curr_step_test = 0
-    cum_r=0
-    actions = deque(maxlen=opt.max_actions)
-#    if save:
-#        print('3333333333333333333')
-    with torch.no_grad():
-        h_0 = torch.zeros((1, 512), dtype=torch.float)
-        c_0 = torch.zeros((1, 512), dtype=torch.float)
-        g_0_ini = torch.ones((1))
-        g_0 = torch.zeros((1, opt.num_sequence), dtype=torch.float)
-        env.reset()
-        if opt.start_initial =='random':
-            for i in range(opt.start_interval):
-                state, reward,_, done, info = env.step(env.action_space.sample())
-                if done:
-                    env.reset()       
-            state=torch.from_numpy(state)
-        else:
-            state = torch.from_numpy(env.reset())
-        if opt.use_gpu:
-            state = state.cuda()        
-            h_0 = h_0.cuda()
-            c_0 = c_0.cuda()
-            g_0_ini = g_0_ini.cuda() 
-            g_0 = g_0.cuda()
-            
-    num_interaction=1
-    score=0
-    while True:
-        curr_step_test += 1
-        with torch.no_grad():
-            h_0 = h_0.detach()
-            c_0 = c_0.detach()
-    
-        logits, value, h_0, c_0,g_0,g_0_cnt,gate_flag,_ = local_model_test(state, h_0, c_0,g_0,g_0_ini,certain=True)
-        g_0_ini = torch.zeros((1))
-        if opt.use_gpu:
-            g_0_ini = g_0_ini.cuda() 
-            
-            
-        policy = F.softmax(logits, dim=1)
-        
-        m = Categorical(policy)
-        action = m.sample().item()
-
-        state, reward, raw_reward,done, info = env.step(action)
-#        if save:
-#            env.render()
-#            time.sleep(0.2)
-        score+=raw_reward
-#        print(score)
-        state = torch.from_numpy(state)
-        if opt.use_gpu:
-            state = state.cuda()
-        cum_r = cum_r+reward
-        actions.append(action)
-        if g_0_cnt==0:
-            num_interaction+=1
-        if curr_step_test > opt.max_test_steps or actions.count(actions[0]) == actions.maxlen:
-            done = True
-        
-        if done:
-            if opt.game=="Supermario":
-                x=info['x_pos']
-            else:
-                x=score
-            X.append(x)
-            Cum_reward.append(cum_r)   
-            Num_interaction.append(num_interaction)                    
-            break
-    return Cum_reward,X,Num_interaction,x
+#def local_test2_allmax(opt,env,local_model_test,Cum_reward,X,Num_interaction,save): 
+#
+#
+#    curr_step_test = 0
+#    cum_r=0
+#    actions = deque(maxlen=opt.max_actions)
+#    
+#    with torch.no_grad():
+#        h_0 = torch.zeros((1, 512), dtype=torch.float)
+#        c_0 = torch.zeros((1, 512), dtype=torch.float)
+#        g_0_ini = torch.ones((1))
+#
+#        g_0 = torch.zeros((1, opt.num_sequence), dtype=torch.float)
+#        env.reset()
+#        if opt.start_initial =='random':
+#            for i in range(opt.start_interval):
+#                state, reward,_, done, info = env.step(env.action_space.sample())
+#                if done:
+#                    env.reset()       
+#            state=torch.from_numpy(state)
+#        else:
+#            state = torch.from_numpy(env.reset())
+#        if opt.use_gpu:
+#            state = state.cuda()        
+#            h_0 = h_0.cuda()
+#            c_0 = c_0.cuda()
+#            g_0_ini = g_0_ini.cuda() 
+#            g_0 = g_0.cuda()
+#        
+#    num_interaction=1
+#    score = 0
+#    while True:
+#        curr_step_test += 1
+#        with torch.no_grad():
+#            h_0 = h_0.detach()
+#            c_0 = c_0.detach()
+#    
+#        logits, value, h_0, c_0,g_0,g_0_cnt,gate_flag,_ = local_model_test(state, h_0, c_0,g_0,g_0_ini,certain=True)
+#        g_0_ini = torch.zeros((1))
+#        if opt.use_gpu:
+#            g_0_ini = g_0_ini.cuda()         
+#        policy = F.softmax(logits, dim=1)
+#        action = torch.argmax(policy).item()
+#        state, reward, raw_reward,done, info = env.step(action)
+#        score += raw_reward
+#        state = torch.from_numpy(state)
+#        if opt.use_gpu:
+#            state = state.cuda()
+#        cum_r = cum_r+reward
+#        actions.append(action)
+#        if g_0_cnt==0:
+#            num_interaction+=1
+#        if curr_step_test > opt.max_test_steps or actions.count(actions[0]) == actions.maxlen:
+#            done = True
+#        
+#        if done:
+#            if opt.game=="Supermario":
+#                x=info['x_pos']
+#            else:
+#                x=score
+#            X.append(x)
+#            Cum_reward.append(cum_r)   
+#            Num_interaction.append(num_interaction)                    
+#            break
+#    
+#    return Cum_reward,X,Num_interaction,x
+#
+#
+#def local_test3_actionpro_gatemax(opt,env,local_model_test,Cum_reward,X,Num_interaction,save): 
+#
+#
+#    curr_step_test = 0
+#    cum_r=0
+#    actions = deque(maxlen=opt.max_actions)
+##    if save:
+##        print('3333333333333333333')
+#    with torch.no_grad():
+#        h_0 = torch.zeros((1, 512), dtype=torch.float)
+#        c_0 = torch.zeros((1, 512), dtype=torch.float)
+#        g_0_ini = torch.ones((1))
+#        g_0 = torch.zeros((1, opt.num_sequence), dtype=torch.float)
+#        env.reset()
+#        if opt.start_initial =='random':
+#            for i in range(opt.start_interval):
+#                state, reward,_, done, info = env.step(env.action_space.sample())
+#                if done:
+#                    env.reset()       
+#            state=torch.from_numpy(state)
+#        else:
+#            state = torch.from_numpy(env.reset())
+#        if opt.use_gpu:
+#            state = state.cuda()        
+#            h_0 = h_0.cuda()
+#            c_0 = c_0.cuda()
+#            g_0_ini = g_0_ini.cuda() 
+#            g_0 = g_0.cuda()
+#            
+#    num_interaction=1
+#    score=0
+#    while True:
+#        curr_step_test += 1
+#        with torch.no_grad():
+#            h_0 = h_0.detach()
+#            c_0 = c_0.detach()
+#    
+#        logits, value, h_0, c_0,g_0,g_0_cnt,gate_flag,_ = local_model_test(state, h_0, c_0,g_0,g_0_ini,certain=True)
+#        g_0_ini = torch.zeros((1))
+#        if opt.use_gpu:
+#            g_0_ini = g_0_ini.cuda() 
+#            
+#            
+#        policy = F.softmax(logits, dim=1)
+#        
+#        m = Categorical(policy)
+#        action = m.sample().item()
+#
+#        state, reward, raw_reward,done, info = env.step(action)
+##        if save:
+##            env.render()
+##            time.sleep(0.2)
+#        score+=raw_reward
+##        print(score)
+#        state = torch.from_numpy(state)
+#        if opt.use_gpu:
+#            state = state.cuda()
+#        cum_r = cum_r+reward
+#        actions.append(action)
+#        if g_0_cnt==0:
+#            num_interaction+=1
+#        if curr_step_test > opt.max_test_steps or actions.count(actions[0]) == actions.maxlen:
+#            done = True
+#        
+#        if done:
+#            if opt.game=="Supermario":
+#                x=info['x_pos']
+#            else:
+#                x=score
+#            X.append(x)
+#            Cum_reward.append(cum_r)   
+#            Num_interaction.append(num_interaction)                    
+#            break
+#    return Cum_reward,X,Num_interaction,x
 
 
 
@@ -276,6 +285,7 @@ def local_train(index, opt, global_model, optimizer, save=False):
     
     loss_matrix = []
     Cum_reward1 = []
+    SCORE1 = []
     X1 = []
     Num_interaction1=[]
     
@@ -289,6 +299,7 @@ def local_train(index, opt, global_model, optimizer, save=False):
     local_model1.eval() 
 
     Cum_reward2 = []
+    SCORE2=[]
     X2 = []
     Num_interaction2=[]
     
@@ -302,6 +313,7 @@ def local_train(index, opt, global_model, optimizer, save=False):
     local_model2.eval() 
 
     Cum_reward3 = []
+    SCORE3=[]
     X3 = []
     Num_interaction3=[]
     if opt.game == "Supermario":
@@ -321,25 +333,25 @@ def local_train(index, opt, global_model, optimizer, save=False):
                 if opt.game=='Supermario':
 #                    torch.save(global_model.state_dict(),
 #                               "{}/a3c_seq_super_mario_bros_{}_{}".format(opt.saved_path, opt.world, opt.stage))
-                    torch.save(global_model.state_dict(),saved_path+"/trained_model_{}_{}")    
+                    torch.save(global_model.state_dict(),saved_path+"/trained_model")    
                 else:
                     torch.save(global_model.state_dict(),saved_path+"/trained_model")                    
 #            print("Process {}. Episode {}".format(index, curr_episode),done)
         
         if curr_episode%opt.log_interval==0:
-            local_model1.load_state_dict(global_model.state_dict())            
-            Cum_reward1,X1,Num_interaction1,x_arrive_all_pro = local_test1_allpro(opt,env1,local_model1,Cum_reward1,X1,Num_interaction1,save)  
-            if opt.game=='Supermario':
-                local_model2.load_state_dict(global_model.state_dict())            
-                Cum_reward2,X2,Num_interaction2,x_arrive_all_max = local_test2_allmax(opt,env2,local_model2,Cum_reward2,X2,Num_interaction2,save)
+ 
+#            if opt.game=='Supermario':
+#                local_model1.load_state_dict(global_model.state_dict())            
+#                Cum_reward1,X1,Num_interaction1,x_arrive_all_pro = local_test_iter(opt,env1,local_model1,Cum_reward1,X1,Num_interaction1,save) 
                 
-                local_model3.load_state_dict(global_model.state_dict())            
-                Cum_reward3,X3,Num_interaction3,x_arrive_actionpro_gatemax = local_test3_actionpro_gatemax(opt,env3,local_model3,Cum_reward3,X3,Num_interaction3,save)
-                if save:
-                    print(curr_episode,x_arrive_all_pro,x_arrive_all_max,x_arrive_actionpro_gatemax)
-            else:
-                if save:
-                    print(curr_episode,x_arrive_all_pro)                
+            local_model2.load_state_dict(global_model.state_dict())            
+            Cum_reward2,SCORE2,X2,Num_interaction2,x_arrive_all_max = local_test_iter(opt,env2,local_model2,Cum_reward2,SCORE2,X2,Num_interaction2,videosave=False,action_max=True,gate_max=True)
+            
+            local_model3.load_state_dict(global_model.state_dict())            
+            Cum_reward3,SCORE3,X3,Num_interaction3,x_arrive_actionpro_gatemax = local_test_iter(opt,env3,local_model3,Cum_reward3,SCORE3,X3,Num_interaction3,videosave=False,action_max=False,gate_max=True)
+            print(curr_episode,x_arrive_all_max,x_arrive_actionpro_gatemax)
+
+                
         curr_episode += 1
         local_model.load_state_dict(global_model.state_dict())
 #        g_0_cnt = 0 
@@ -512,32 +524,24 @@ def local_train(index, opt, global_model, optimizer, save=False):
         
         if curr_episode%opt.save_interval==0:
 #            print('aaaaaaaaaaa',X,Cum_reward)
-            if opt.game=='Supermario':                    
-                np.save(saved_path+"/loss{}".format(index), loss_matrix)
-                np.save(saved_path+"/Cum_reward1{}".format(index), Cum_reward1)
+            if opt.game=='Supermario':  
                 np.save(saved_path+"/X1{}".format(index), X1)
-                np.save(saved_path+"/Num_interaction1{}".format(index), Num_interaction1)
-    
-                np.save(saved_path+"/Cum_reward2{}".format(index), Cum_reward2)
                 np.save(saved_path+"/X2{}".format(index), X2)
-                np.save(saved_path+"/Num_interaction2{}".format(index), Num_interaction2)
-    
-                np.save(saved_path+"/Cum_reward3{}".format(index), Cum_reward3)
                 np.save(saved_path+"/X3{}".format(index), X3)
-                np.save(saved_path+"/Num_interaction3{}".format(index), Num_interaction3)           
-            else:
-                np.save(saved_path+"/loss{}".format(index), loss_matrix)
-                np.save(saved_path+"/Cum_reward1{}".format(index), Cum_reward1)
-                np.save(saved_path+"/X1{}".format(index), X1)
-                np.save(saved_path+"/Num_interaction1{}".format(index), Num_interaction1)
-    
-                np.save(saved_path+"/Cum_reward2{}".format(index), Cum_reward2)
-                np.save(saved_path+"/X2{}".format(index), X2)
-                np.save(saved_path+"/Num_interaction2{}".format(index), Num_interaction2)
-    
-                np.save(saved_path+"/Cum_reward3{}".format(index), Cum_reward3)
-                np.save(saved_path+"/X3{}".format(index), X3)
-                np.save(saved_path+"/Num_interaction3{}".format(index), Num_interaction3)              
+                                  
+            np.save(saved_path+"/loss{}".format(index), loss_matrix)
+            np.save(saved_path+"/Cum_reward1{}".format(index), Cum_reward1)
+            np.save(saved_path+"/SCORE1{}".format(index), X1)
+            np.save(saved_path+"/Num_interaction1{}".format(index), Num_interaction1)
+
+            np.save(saved_path+"/Cum_reward2{}".format(index), Cum_reward2)
+            np.save(saved_path+"/SCORE2{}".format(index), X2)
+            np.save(saved_path+"/Num_interaction2{}".format(index), Num_interaction2)
+
+            np.save(saved_path+"/Cum_reward3{}".format(index), Cum_reward3)
+            np.save(saved_path+"/SCORE3{}".format(index), X3)
+            np.save(saved_path+"/Num_interaction3{}".format(index), Num_interaction3)           
+             
         for local_param, global_param in zip(local_model.parameters(), global_model.parameters()):
             if global_param.grad is not None:
                 break
