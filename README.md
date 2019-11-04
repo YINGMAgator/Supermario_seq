@@ -1,7 +1,20 @@
 
 ## Introduction
 
-Here is my python source code for sequence augmented A3C. The original code is training an agent to play super mario bros.The baseline A3C is from [PYTORCH] Asynchronous Advantage Actor-Critic (A3C) for playing Super Mario Bros. https://github.com/nhviet1009/Super-mario-bros-A3C-pytorch.  By using Asynchronous Advantage Actor-Critic (A3C) algorithm introduced in the paper **Asynchronous Methods for Deep Reinforcement Learning** [paper](https://arxiv.org/abs/1602.01783).
+Here is my python source code for sequence augmented A3C. The original code is training an agent to play super mario bros.The baseline A3C is from https://github.com/nhviet1009/Super-mario-bros-A3C-pytorch.  By using Asynchronous Advantage Actor-Critic (A3C) algorithm introduced in the paper **Asynchronous Methods for Deep Reinforcement Learning** [paper](https://arxiv.org/abs/1602.01783).
+
+Argument num_sequence is the maximum number of actions sequence without interation with environment. If it is set to 0, the code will be exactly same as original A3C.
+
+In order to make the code run faster, you can set log_internal to a large number, say 100 or 500.
+
+If log_internal is set to 500 and with 6 processes working in parallel, it takes about 5 hours to converge.
+
+Set argument start_initial is add some randomness to the environment, it is not necessary. You can set it as "reset" to get a more stable results and faster training speed. 
+
+The test_seq.py is used to check the results after training. Make sure the argument is test_seq.py and train_seq.py are set to the same value.
+
+
+
 <p align="center">
   <img src="demo/video_1_1.gif">
   <img src="demo/video_1_2.gif">
