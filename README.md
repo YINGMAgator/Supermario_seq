@@ -1,8 +1,7 @@
-# [PYTORCH] Asynchronous Advantage Actor-Critic (A3C) for playing Super Mario Bros
 
 ## Introduction
 
-Here is my python source code for training an agent to play super mario bros. By using Asynchronous Advantage Actor-Critic (A3C) algorithm introduced in the paper **Asynchronous Methods for Deep Reinforcement Learning** [paper](https://arxiv.org/abs/1602.01783).
+Here is my python source code for sequence augmented A3C. The original code is training an agent to play super mario bros.The baseline A3C is from [PYTORCH] Asynchronous Advantage Actor-Critic (A3C) for playing Super Mario Bros. https://github.com/nhviet1009/Super-mario-bros-A3C-pytorch.  By using Asynchronous Advantage Actor-Critic (A3C) algorithm introduced in the paper **Asynchronous Methods for Deep Reinforcement Learning** [paper](https://arxiv.org/abs/1602.01783).
 <p align="center">
   <img src="demo/video_1_1.gif">
   <img src="demo/video_1_2.gif">
