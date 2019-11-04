@@ -51,3 +51,5 @@ You could find some trained models I have trained in Supermario0_3(need to set n
 * **cv2**
 * **pytorch** 
 * **numpy**
+* **gym_supermario**
+https://pypi.org/project/gym-super-mario-bros/
