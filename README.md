@@ -37,8 +37,8 @@ If an agent discovers environment alone, the learning process would be slow. Mor
 ## How to use my code
 
 With my code, you can:
-* **Train your model** by running **python train.py**
-* **Test your trained model** by running **python test.py**
+* **Train your model** by running **python train_seq.py**
+* **Test your trained model** by running **python test_seq.py**
 
 ## Trained models
 
