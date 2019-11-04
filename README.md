@@ -9,9 +9,9 @@ In order to make the code run faster, you can set log_internal to a large number
 
 If log_internal is set to 500 and with 6 processes working in parallel, it takes about 5 hours to converge.
 
-Set argument start_initial is add some randomness to the environment, it is not necessary. You can set it as "reset" to get a more stable results and faster training speed. 
+Argument start_initial (when it is set to "random") is to add some randomness to the environment, it is not necessary. You can set it as "reset" to get a more stable result and faster training speed. 
 
-The test_seq.py is used to check the results after training. Make sure the argument is test_seq.py and train_seq.py are set to the same value.
+The test_seq.py is used to check the results after training. Make sure the all arguments in test_seq.py and train_seq.py are set to the same value.
 
 
 
