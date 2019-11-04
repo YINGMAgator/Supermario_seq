@@ -42,7 +42,8 @@ With my code, you can:
 
 ## Trained models
 
-You could find some trained models I have trained in [Super Mario Bros A3C trained models](https://drive.google.com/open?id=1itDw9sXPiY7xC4u72RIfO5EdoVs0msLL)
+You could find some trained models I have trained in 
+https://github.com/YINGMAgator/Supermario_seq/tree/master/Supermario0_3
  
 ## Requirements
 
