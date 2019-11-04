@@ -42,8 +42,7 @@ With my code, you can:
 
 ## Trained models
 
-You could find some trained models I have trained in 
-https://github.com/YINGMAgator/Supermario_seq/tree/master/Supermario0_3
+You could find some trained models I have trained in Supermario0_3(need to set num_sequence to 3), Supermario0_4(need to set num_sequence to 3),Supermario5_3(need to set num_sequence to 5),Supermario5_4(need to set num_sequence to 4),Supermario10_3(need to set num_sequence to 10),Supermario10_4(need to set num_sequence to 10)
  
 ## Requirements
 
