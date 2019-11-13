@@ -102,6 +102,8 @@ def local_test_iter(opt,env,local_model_test,Cum_reward,SCORE,X,Num_interaction,
                 x=info['x_pos']
                
                 X.append(x)
+            else:
+                x=score
             SCORE.append(score)
             Cum_reward.append(cum_r)   
             Num_interaction.append(num_interaction)                    
@@ -340,16 +342,21 @@ def local_train(index, opt, global_model, optimizer, save=False):
         
         if curr_episode%opt.log_interval==0:
  
-#            if opt.game=='Supermario':
+            if opt.game=='Supermario':
 #                local_model1.load_state_dict(global_model.state_dict())            
 #                Cum_reward1,X1,Num_interaction1,x_arrive_all_pro = local_test_iter(opt,env1,local_model1,Cum_reward1,X1,Num_interaction1,save) 
-                
-            local_model2.load_state_dict(global_model.state_dict())            
-            Cum_reward2,SCORE2,X2,Num_interaction2,x_arrive_all_max = local_test_iter(opt,env2,local_model2,Cum_reward2,SCORE2,X2,Num_interaction2,videosave=False,action_max=True,gate_max=True)
+#            local_model2.load_state_dict(global_model.state_dict())
+ #           Cum_reward2,SCORE2,X2,Num_interaction2,x_arrive_all_pro = local_test_iter(opt,env2,local_model2,Cum_reward2,SCORE2,X2,Num_interaction2,videosave=False,action_max=False,gate_max=False)    
+                local_model2.load_state_dict(global_model.state_dict())            
+                Cum_reward2,SCORE2,X2,Num_interaction2,x_arrive_all_max = local_test_iter(opt,env2,local_model2,Cum_reward2,SCORE2,X2,Num_interaction2,videosave=False,action_max=True,gate_max=True)
             
-            local_model3.load_state_dict(global_model.state_dict())            
-            Cum_reward3,SCORE3,X3,Num_interaction3,x_arrive_actionpro_gatemax = local_test_iter(opt,env3,local_model3,Cum_reward3,SCORE3,X3,Num_interaction3,videosave=False,action_max=False,gate_max=True)
-            print(curr_episode,x_arrive_all_max,x_arrive_actionpro_gatemax)
+                local_model3.load_state_dict(global_model.state_dict())            
+                Cum_reward3,SCORE3,X3,Num_interaction3,x_arrive_actionpro_gatemax = local_test_iter(opt,env3,local_model3,Cum_reward3,SCORE3,X3,Num_interaction3,videosave=False,action_max=False,gate_max=True)
+                print(curr_episode,x_arrive_all_max,x_arrive_actionpro_gatemax )
+            else:
+                local_model1.load_state_dict(global_model.state_dict())
+                Cum_reward1,SCORE1,X1,Num_interaction1,x_arrive_all_pro = local_test_iter(opt,env1,local_model1,Cum_reward1,SCORE1,X1,Num_interaction1,videosave=False,action_max=False,gate_max=False)
+                print(curr_episode,x_arrive_all_pro)
 
                 
         curr_episode += 1
@@ -531,15 +538,15 @@ def local_train(index, opt, global_model, optimizer, save=False):
                                   
             np.save(saved_path+"/loss{}".format(index), loss_matrix)
             np.save(saved_path+"/Cum_reward1{}".format(index), Cum_reward1)
-            np.save(saved_path+"/SCORE1{}".format(index), X1)
+            np.save(saved_path+"/SCORE1{}".format(index), SCORE1)
             np.save(saved_path+"/Num_interaction1{}".format(index), Num_interaction1)
 
             np.save(saved_path+"/Cum_reward2{}".format(index), Cum_reward2)
-            np.save(saved_path+"/SCORE2{}".format(index), X2)
+            np.save(saved_path+"/SCORE2{}".format(index), SCORE2)
             np.save(saved_path+"/Num_interaction2{}".format(index), Num_interaction2)
 
             np.save(saved_path+"/Cum_reward3{}".format(index), Cum_reward3)
-            np.save(saved_path+"/SCORE3{}".format(index), X3)
+            np.save(saved_path+"/SCORE3{}".format(index), SCORE3)
             np.save(saved_path+"/Num_interaction3{}".format(index), Num_interaction3)           
              
         for local_param, global_param in zip(local_model.parameters(), global_model.parameters()):

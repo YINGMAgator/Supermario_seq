@@ -52,7 +52,7 @@ def get_args():
     parser.add_argument("--value_loss_coef", type=float, default=None)
     
     parser.add_argument("--load_model_path", type=str, default=None)
-    parser.add_argument("--load_from_previous_stage", type=bool, default=False,
+    parser.add_argument("--load_from_previous_stage", type=str2bool, default=False,
                         help="Load weight from previous trained stage")
     parser.add_argument("--use_gpu", type=str2bool, default=False)
     # atari arguement 
