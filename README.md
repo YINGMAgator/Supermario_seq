@@ -19,13 +19,9 @@ The test_seq.py is used to check the results after training. Make sure the all a
   <img src="demo/ouput0.gif">
   <img src="demo/output5.gif">
   <img src="demo/output10.gif">
-  <img src="demo/video_1_4.gif"><br/>
-  <img src="demo/video_2_3.gif">
-  <img src="demo/video_3_1.gif">
-  <img src="demo/video_3_4.gif"><br/>
-  <img src="demo/video_4_1.gif">
-  <img src="demo/video_6_1.gif">
-  <img src="demo/video_7_1.gif"><br/>
+  <img src="demo/ouput0b.gif">
+  <img src="demo/output5b.gif">
+  <img src="demo/output10b.gif">
   <i>Sample results</i>
 </p>
 
