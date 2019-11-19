@@ -16,7 +16,7 @@ The test_seq.py is used to check the results after training. Make sure the all a
 
 
 <p align="center">
-  <img src="demo/output0.gif">
+  <img src="demo/ouput0.gif">
   <img src="demo/output5.gif">
   <img src="demo/output10.gif">
   <img src="demo/video_1_4.gif"><br/>
