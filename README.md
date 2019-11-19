@@ -16,9 +16,9 @@ The test_seq.py is used to check the results after training. Make sure the all a
 
 
 <p align="center">
-  <img src="demo/ezgif.com-video-to-gif.gif">
-  <img src="demo/video_1_1.gif">
-  <img src="demo/video_1_2.gif">
+  <img src="demo/output0.gif">
+  <img src="demo/output5.gif">
+  <img src="demo/output10.gif">
   <img src="demo/video_1_4.gif"><br/>
   <img src="demo/video_2_3.gif">
   <img src="demo/video_3_1.gif">
@@ -52,7 +52,9 @@ If an agent discovers environment alone, the learning process would be slow. Mor
 With my code, you can:
 * **Train your model** by running **python train_seq.py**
 * **Test your trained model** by running **python test_seq.py**
-
+* **mario_interaction.py** is used to get the statistic results for the table in paper.
+It average the results of 4 trained models, each with 100 runs, so in total is 4*100 samples. 
+* To generate the video, run **test_seq.py** first to save STATE.npy and CNT.npy (set video_save parameter True). Then feed the STATE.npy and CNT.npy to **videoshow.npy** to generate the video of Mario action. 
 ## Trained models
 
 You could find some trained models I have trained in Supermario0_3(need to set num_sequence to 3), Supermario0_4(need to set num_sequence to 3),Supermario5_3(need to set num_sequence to 5),Supermario5_4(need to set num_sequence to 4),Supermario10_3(need to set num_sequence to 10),Supermario10_4(need to set num_sequence to 10)
