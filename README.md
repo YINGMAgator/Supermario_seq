@@ -16,6 +16,7 @@ The test_seq.py is used to check the results after training. Make sure the all a
 
 
 <p align="center">
+  <img src="demo/ezgif.com-video-to-gif.gif">
   <img src="demo/video_1_1.gif">
   <img src="demo/video_1_2.gif">
   <img src="demo/video_1_4.gif"><br/>
