@@ -15,19 +15,19 @@ The test_seq.py is used to check the results after training. Make sure the all a
 
 
 
-<p align="center">
-
-  <img src="demo/output0b.gif">
-  <img src="demo/output5b.gif">
-  <img src="demo/output10b.gif">
-
-</p>
 
 ## Motivation
 
-Before I implemented this project, there are several repositories reproducing the paper's result quite well, in different common deep learning frameworks such as Tensorflow, Keras and Pytorch. In my opinion, most of them are great. However, they seem to be overly complicated in many parts including image's pre-processing, environtment setup and weight initialization, which distracts user's attention from more important matters. Therefore, I decide to write a cleaner code, which simplifies unimportant parts, while still follows the paper strictly. As you could see, with minimal setup and simple network's initialization, as long as you implement the algorithm correctly, an agent will teach itself how to interact with environment and gradually find out the way to reach the final goal.
+Although the current RL algorithms achieve great successes in a lot of domains, they are not as efficient as a naturalhuman. Human don’t take input and make decision at each time step, for example, song and catch a ball. In currentRL, learning options and macro action is of essential importance as it can reduce computation burden and enablestructured learning, therefore it take one step closer to natural human intelligent system. In this paper, we will introduce an automatic macro action recognition method.
+<p align="center">
 
-## Explanation in layman's term
+  <img src="demo/System_arc.png">
+
+
+</p>
+The system of the proposed system is shown in the figure above, the front end of the system is a Convolutional neural network (CNN), which is used to extract feature of the input image. After it, different from the traditional Asynchronous Advantage Actor Critic (A3C) model, we introduce a gate mechanism for macro action recognition. The gate will decide the length of current macro action. In order to use backpropogation to train the gate, we add an internal reward to the reward from environment. This internal reward is supposed to add a bonus to the long macro action. 
+
+## Explanation in layman's term for A3C
 If you are already familiar to reinforcement learning in general and A3C in particular, you could skip this part. I write this part for explaining what is A3C algorithm, how and why it works, to people who are interested in or curious about A3C or my implementation, but do not understand the mechanism behind. Therefore, you do not need any prerequiste knowledge for reading this part :relaxed:
 
 If you search on the internet, there are numerous article introducing or explaining A3C, some even provide sample code. However, I would like to take another approach: Break down the name **Asynchronous Actor-Critic Agents** into smaller parts and explain in an aggregated manner.
@@ -41,6 +41,16 @@ To make the kid learn faster, and more stable, the dad, instead of telling his s
 ### Asynchronous Advantage Actor-Critic
 If an agent discovers environment alone, the learning process would be slow. More seriously, the agent could be possibly bias to a particular suboptimal solution, which is undesirable. What happen if you have a bunch of agents which simultaneously discover different part of the environment and update their new obtained knowledge to one another periodically? It is exactly the idea of **Asynchronous Advantage Actor-Critic**. Now the kid and his mates in kindergarten have a trip to a beautiful beach (with their teacher, of course). Their task is to build a great sand castle. Different child will build different parts of the castle, supervised by the teacher. Each of them will have different task, with the same final goal is a strong and eye-catching castle. Certainly, the role of the teacher now is the same as the dad in previous example. The only difference is that the former is busier :sweat_smile:
 
+
+## Result
+
+<p align="center">
+
+  <img src="demo/output0b.gif">
+  <img src="demo/output5b.gif">
+  <img src="demo/output10b.gif">
+
+</p>
 ## How to use my code
 
 With my code, you can:
