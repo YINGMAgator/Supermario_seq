@@ -51,7 +51,7 @@ Here we show the comparison of the proposed framework with different action dura
 
 <p align="center">
 
-  <img src="demo/result_Table.png">
+  <img src="demo/result.png">
 
 </p>
 
