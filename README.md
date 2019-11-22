@@ -23,10 +23,13 @@ Although the current RL algorithms achieve great successes in a lot of domains, 
 
   <img src="demo/System_arc.png">
 
+</p>
+The system of the proposed system is shown in the figure above, the front end of the system is a Convolutional neural network (CNN), which is used to extract feature of the input image. After it, different from the traditional Asynchronous Advantage Actor Critic (A3C) model, we introduce a gate mechanism for macro action recognition. The gate will decide the length of current macro action. In order to use backpropogation to train the gate, we add an internal reward to the reward from environment. This internal reward is supposed to add a bonus to the long macro action. The algorithm is summarized in the following algorithm.
+<p align="center">
+
+  <img src="demo/algorithm.png">
 
 </p>
-The system of the proposed system is shown in the figure above, the front end of the system is a Convolutional neural network (CNN), which is used to extract feature of the input image. After it, different from the traditional Asynchronous Advantage Actor Critic (A3C) model, we introduce a gate mechanism for macro action recognition. The gate will decide the length of current macro action. In order to use backpropogation to train the gate, we add an internal reward to the reward from environment. This internal reward is supposed to add a bonus to the long macro action. 
-
 ## Explanation in layman's term for A3C
 If you are already familiar to reinforcement learning in general and A3C in particular, you could skip this part. I write this part for explaining what is A3C algorithm, how and why it works, to people who are interested in or curious about A3C or my implementation, but do not understand the mechanism behind. Therefore, you do not need any prerequiste knowledge for reading this part :relaxed:
 
@@ -43,6 +46,14 @@ If an agent discovers environment alone, the learning process would be slow. Mor
 
 
 ## Result
+
+Here we show the comparison of the proposed framework with different action duration (N=5 and N=10) and the baseline A3C in terms of total reward and number of interaction with environment. We can see from the result, the proposed method 2 obtain both performance and computation gains. 
+
+<p align="center">
+
+  <img src="demo/result.png">
+
+</p>
 
 <p align="center">
 
