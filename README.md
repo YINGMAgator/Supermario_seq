@@ -62,6 +62,24 @@ Here we show the comparison of the proposed framework with different action dura
   <img src="demo/output10b.gif">
 
 </p>
+
+
+
+<p align="center">
+
+  <img src="demo/video_1_1.gif">
+  <img src="demo/video_1_2.gif">
+  <img src="demo/video_1_4.gif">
+  <img src="demo/video_2_3.gif">
+  <img src="demo/video_3_1.gif">
+  <img src="demo/video_3_4.gif">
+  <img src="demo/video_4_1.gif">
+  <img src="demo/video_6_1.gif">
+  <img src="demo/video_7_1.gif">
+</p>
+
+
+
 ## How to use my code
 
 With my code, you can:
